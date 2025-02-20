@@ -147,6 +147,11 @@ bool GLWidget::LoadModel(const QString &filename) {
 
     // TODO(students): Create / Initialize buffers.
     // MESH: You need to create 1 VAO and 4 VBO
+    // mesh_->vertices -> attrib location 0
+    // mesh_->normals -> attrib location 1
+    // mesh_->texCoords -> attrib location 2
+    // mesh_->faces -> elements
+
     glGenVertexArrays(1,&VAO);
     glGenBuffers(1,&VBO_v);
     glGenBuffers(1,&VBO_n);
@@ -169,22 +174,16 @@ bool GLWidget::LoadModel(const QString &filename) {
     glBufferData(GL_ARRAY_BUFFER,sizeof(float)*mesh_->texCoords_.size(),&mesh_->texCoords_[0],GL_STATIC_DRAW);
     glVertexAttribPointer(2,3,GL_FLOAT,GL_FALSE,0,0);
     glEnableVertexAttribArray(2);
-    // TextureCoords VBO data initialization
+    // Faces VBO data initialization
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(int)*mesh_->faces_.size(),&mesh_->faces_[0],GL_STATIC_DRAW);
 
-    //mesh_->vertices -> attrib location 0
-    //mesh_->normals -> attrib location 1
-    //mesh_->texCoords -> attrib location 2
-    //mesh_->faces -> elements
 
-    //SKY BOX: You need to create 1 VAO and 2 VBO:
+    // SKY BOX: You need to create 1 VAO and 2 VBO:
     // vertices -> attrib location 0
-    //faces -> elements
+    // faces -> elements
 
     /*
-     *
-     *
      *          4           5
      *      6           7
      *
@@ -192,6 +191,46 @@ bool GLWidget::LoadModel(const QString &filename) {
      *          0           1
      *      2           3
      */
+
+    skyVertices_ = {
+        -1.0f, -1.0f,  1.0f,    // 0
+         1.0f, -1.0f,  1.0f,    // 1
+        -1.0f, -1.0f, -1.0f,    // 2
+         1.0f, -1.0f, -1.0f,    // 3
+        -1.0f,  1.0f,  1.0f,    // 4
+         1.0f,  1.0f,  1.0f,    // 5
+        -1.0f,  1.0f, -1.0f,    // 6
+         1.0f,  1.0f, -1.0f     // 7
+    };
+
+    skyFaces_ = {
+        0,1,2,
+        1,2,3,
+        4,5,6,
+        5,6,7,
+        0,2,4,
+        2,4,6,
+        1,3,5,
+        3,5,7,
+        0,1,4,
+        1,4,5,
+        2,3,6,
+        3,6,7
+    };
+
+    glGenVertexArrays(1,&VAO_sky);
+    glGenBuffers(1,&VBO_v_sky);
+    glGenBuffers(1,&VBO_i_sky);
+
+    glBindVertexArray(VAO_sky);
+    // Vertices VBO data initialization
+    glBindBuffer(GL_ARRAY_BUFFER,VBO_v_sky);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(float)*skyVertices_.size(),&skyVertices_[0],GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,0);
+    glEnableVertexAttribArray(0);
+    // Faces VBO data initialization
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i_sky);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(int)*skyFaces_.size(),&skyFaces_[0],GL_STATIC_DRAW);
 
     // TODO END.
 
@@ -441,6 +480,9 @@ void GLWidget::paintGL ()
             if(skyVisible_) {
                 //model = camera_.SetIdentity();
 
+                // Ignore camera translation
+                view = glm::mat4(glm::mat3(camera_.SetView()));
+
                 programs_[programs_.size()-1]->bind();
 
                 projection_location     = programs_[programs_.size()-1]->uniformLocation("projection");
@@ -459,7 +501,11 @@ void GLWidget::paintGL ()
                 glUniform1i(specular_map_location, 0);
 
                 // TODO(students): implement the draw call of the sky box
-
+                glDepthFunc(GL_LEQUAL);
+                glBindVertexArray(VAO_sky);
+                glDrawElements(GL_TRIANGLES,skyFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                glBindVertexArray(0);
+                glDepthFunc(GL_LESS);
                 // TODO END.
             }
         }

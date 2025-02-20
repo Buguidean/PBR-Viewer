@@ -299,6 +299,7 @@ DIST          = ../../shaders/README.md \
 		/usr/lib/qt6/mkspecs/features/qt_config.prf \
 		/usr/lib/qt6/mkspecs/linux-g++/qmake.conf \
 		/usr/lib/qt6/mkspecs/features/spec_post.prf \
+		../../.qmake.stash \
 		/usr/lib/qt6/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/qt6/mkspecs/features/toolchain.prf \
 		/usr/lib/qt6/mkspecs/features/default_pre.prf \
@@ -563,6 +564,7 @@ Makefile: ../../ViewerPBS.pro /usr/lib/qt6/mkspecs/linux-g++/qmake.conf /usr/lib
 		/usr/lib/qt6/mkspecs/features/qt_config.prf \
 		/usr/lib/qt6/mkspecs/linux-g++/qmake.conf \
 		/usr/lib/qt6/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		/usr/lib/qt6/mkspecs/features/exclusive_builds.prf \
 		/usr/lib/qt6/mkspecs/features/toolchain.prf \
 		/usr/lib/qt6/mkspecs/features/default_pre.prf \
@@ -810,6 +812,7 @@ Makefile: ../../ViewerPBS.pro /usr/lib/qt6/mkspecs/linux-g++/qmake.conf /usr/lib
 /usr/lib/qt6/mkspecs/features/qt_config.prf:
 /usr/lib/qt6/mkspecs/linux-g++/qmake.conf:
 /usr/lib/qt6/mkspecs/features/spec_post.prf:
+.qmake.stash:
 /usr/lib/qt6/mkspecs/features/exclusive_builds.prf:
 /usr/lib/qt6/mkspecs/features/toolchain.prf:
 /usr/lib/qt6/mkspecs/features/default_pre.prf:
