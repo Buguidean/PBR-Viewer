@@ -172,7 +172,7 @@ bool GLWidget::LoadModel(const QString &filename) {
     // TextureCoords VBO data initialization
     glBindBuffer(GL_ARRAY_BUFFER,VBO_tc);
     glBufferData(GL_ARRAY_BUFFER,sizeof(float)*mesh_->texCoords_.size(),&mesh_->texCoords_[0],GL_STATIC_DRAW);
-    glVertexAttribPointer(2,3,GL_FLOAT,GL_FALSE,0,0);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,0,0);
     glEnableVertexAttribArray(2);
     // Faces VBO data initialization
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i);
@@ -264,7 +264,18 @@ bool GLWidget::LoadColorMap(const QString &filename)
     //TODO Students
     //Configure the texture with identifier color_map_. Take advantage of LoadImage("path", GL_TEXTURE_2D).
     //Remember to configure the texture parameters.
-    bool res;
+    std::string path = filename.toUtf8().constData();
+    glBindTexture(GL_TEXTURE_2D, color_map_);
+    bool res = LoadImage(path, GL_TEXTURE_2D);
+
+    if (res) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
     //TODO END
     update();
     return res;
@@ -276,7 +287,18 @@ bool GLWidget::LoadRoughnessMap(const QString &filename)
     //TODO Students
     //Configure the texture with identifier roughness_map_. Take advantage of LoadImage("path", GL_TEXTURE_2D)
     //Remember to configure the texture parameters.
-    bool res;
+    std::string path = filename.toUtf8().constData();
+    glBindTexture(GL_TEXTURE_2D, roughness_map_);
+    bool res = LoadImage(path, GL_TEXTURE_2D);
+
+    if (res) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
     //TODO END
     update();
     return res;
@@ -287,7 +309,18 @@ bool GLWidget::LoadMetalnessMap(const QString &filename)
     //TODO Students
     //Configure the texture with identifier metalness_map_. Take advantage of LoadImage("path", GL_TEXTURE_2D)
     //Remember to configure the texture parameters.
-    bool res;
+    std::string path = filename.toUtf8().constData();
+    glBindTexture(GL_TEXTURE_2D, metalness_map_);
+    bool res = LoadImage(path, GL_TEXTURE_2D);
+
+    if (res) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
     //TODO END
     update();
     return res;
@@ -310,6 +343,8 @@ void GLWidget::initializeGL ()
   glGenTextures(1, &color_map_);
   glGenTextures(1, &roughness_map_);
   glGenTextures(1, &metalness_map_);
+  //set current texture for ui texture mapping
+  SetCurrentTexture(3);
 
   //create shader programs
   programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//phong
@@ -460,6 +495,18 @@ void GLWidget::paintGL ()
             //Texture unit 3 color_map_
             //Texture unit 4 roughness_map_
             //Texture unit 5 metalness_map_
+
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, color_map_);
+            glUniform1i(color_map_location, 3);
+
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, roughness_map_);
+            glUniform1i(roughness_map_location, 4);
+
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_2D, metalness_map_);
+            glUniform1i(metalness_map_location, 5);
 
             //TODO END
 

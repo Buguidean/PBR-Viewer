@@ -77,6 +77,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    */
   bool LoadMetalnessMap(const QString &filename);
 
+  /**
+   * @brief SetCurrentTexture sets the current texture to show
+   */
+  void SetCurrentTexture(int);
+
  protected:
   /**
    * @brief initializeGL Initializes OpenGL variables and loads, compiles and
@@ -242,11 +247,6 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetFresnelG Sets the fresnel F0 green component.
    */
   void SetFresnelG(double);
-
-  /**
-   * @brief SetCurrentTexture sets the current texture to show
-   */
-  void SetCurrentTexture(int);
 
   /**
    * @brief SetCurrentTexture sets the current texture to show

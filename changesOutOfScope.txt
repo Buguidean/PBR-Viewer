@@ -1,0 +1,13 @@
+1: // Ignore camera translation for skybox
+   view = glm::mat4(glm::mat3(camera_.SetView()));
+
+2: // Set as CurrentTexture for texture mapping texture unit 3 in InitializeGL()
+   SetCurrentTexture(3);
+
+3: // Added funcionality for selecting the texture to be used for texture mapping
+   // using the existing Qt UI. For that SetCurrentTexture(int idx) as been set as
+   // a public function.
+
+// MINOR ADDITIONS //
+
+- Added an aditional skybox
