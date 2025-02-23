@@ -8,6 +8,10 @@
    // using the existing Qt UI. For that SetCurrentTexture(int idx) as been set as
    // a public function.
 
+4: // Added inverse of the view matrix for the reflection of the skybox onto the 
+   // sphere since the skybox is defined in world space and I dont have the camera
+   // position as a uniform to compute the reflection in world space.
+
 // MINOR ADDITIONS //
 
 - Added an aditional skybox

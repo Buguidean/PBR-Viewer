@@ -451,8 +451,11 @@ void GLWidget::paintGL ()
                 normal[i][j] = t[i][j];
          normal = glm::transpose(glm::inverse(normal));
 
+        // Compute inverse of view matrix as a uniform
+        glm::mat4x4 iview = glm::inverse(view);
+
         if (mesh_ != nullptr) {
-            GLint projection_location, view_location, model_location,
+            GLint projection_location, view_location, inv_view_location, model_location,
             normal_matrix_location, specular_map_location, diffuse_map_location,
             fresnel_location, color_map_location, roughness_map_location, metalness_map_location,
             current_text_location, light_location, roughness_location, metalness_location;
@@ -464,6 +467,7 @@ void GLWidget::paintGL ()
 
             projection_location       = programs_[currentShader_]->uniformLocation("projection");
             view_location             = programs_[currentShader_]->uniformLocation("view");
+            inv_view_location         = programs_[currentShader_]->uniformLocation("inv_view");
             model_location            = programs_[currentShader_]->uniformLocation("model");
             normal_matrix_location    = programs_[currentShader_]->uniformLocation("normal_matrix");
             specular_map_location     = programs_[currentShader_]->uniformLocation("specular_map");
@@ -480,6 +484,7 @@ void GLWidget::paintGL ()
 
             glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
             glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
+            glUniformMatrix4fv(inv_view_location, 1, GL_FALSE, &iview[0][0]);
             glUniformMatrix4fv(model_location, 1, GL_FALSE, &model[0][0]);
             glUniformMatrix3fv(normal_matrix_location, 1, GL_FALSE, &normal[0][0]);
 
