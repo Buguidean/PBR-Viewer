@@ -43,11 +43,25 @@ float G(vec3 normal, vec3 dir, float k){
     return n_times_dir/denominator;
 }
 
+/*
 vec3 F(vec3 normal, vec3 v, vec3 F0){
     float n_times_v = max(dot(normal,v),0.0);
     n_times_v = 1 - n_times_v;
     return F0 + (1 - F0) * pow(n_times_v,5);
 }
+*/
+
+vec3 F(vec3 v, vec3 h, vec3 F0){
+    float cosTheta = max(dot(v, h), 0.0);
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+/*
+vec3 F(vec3 normal, vec3 v, vec3 F0){
+    float cosTheta = max(dot(normal, v), 0.0);
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+*/
 
 void main (void) {
     float ks_v = 0.7;
@@ -60,12 +74,11 @@ void main (void) {
 
     vec3 l = normalize(LightPos - FragPos);
     vec3 v = normalize(-FragPos);
-    float mag = length(l+v);
-    vec3 halfway = (l+v) / mag;
+    vec3 halfway = normalize(l+v);
 
     float dv = D(nm_Normal,halfway,roughness);
     float gv = G(nm_Normal,v,k_direct) * G(nm_Normal,l,k_direct);
-    vec3 fv = F(nm_Normal,v,F0);
+    vec3 fv = F(v,halfway,F0);
     vec3 tv = vec3(dv,dv,dv);
-    frag_color = vec4(tv,1.0);
+    frag_color = vec4(fv,1.0);
 }
