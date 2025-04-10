@@ -144,14 +144,6 @@ bool GLWidget::LoadModel(const QString &filename) {
     mesh_.reset(mesh.release());
     camera_.UpdateModel(mesh_->min_, mesh_->max_);
 
-    // Check if index references are in bounds
-    for (size_t i = 0; i < mesh_->faces_.size(); i++) {
-        if (mesh_->faces_[i] * 3 >= mesh_->vertices_.size()) {
-            qDebug() << "WARNING: Face index out of bounds at " << i
-                     << " (index=" << mesh_->faces_[i] << ")";
-        }
-    }
-
     if (initialized_){
       // Unbind any active vertex arrays
       glBindVertexArray(0);
