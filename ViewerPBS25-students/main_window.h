@@ -61,8 +61,6 @@ class MainWindow : public QMainWindow {
    */
   void on_actionLoad_Metalness_triggered();
 
-  void on_combo_tex_currentIndexChanged(int index);
-
   private:
   Ui::MainWindow *ui;
 };

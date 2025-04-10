@@ -83,10 +83,4 @@ void MainWindow::on_actionLoad_Metalness_triggered()
                              tr("The file could not be opened"));
     }
 }
-
-void MainWindow::on_combo_tex_currentIndexChanged(int index)
-{
-    ui->glwidget->SetCurrentTexture(index+3);
-}
-
 }  //  namespace gui

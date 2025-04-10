@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>828</width>
-    <height>638</height>
+    <width>836</width>
+    <height>660</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -351,10 +351,10 @@
       <item>
        <spacer name="Spacer">
         <property name="orientation">
-         <enum>Qt::Vertical</enum>
+         <enum>Qt::Orientation::Vertical</enum>
         </property>
         <property name="sizeType">
-         <enum>QSizePolicy::Maximum</enum>
+         <enum>QSizePolicy::Policy::Maximum</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -476,8 +476,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>828</width>
-     <height>22</height>
+     <width>836</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -573,7 +573,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>796</x>
-     <y>566</y>
+     <y>694</y>
     </hint>
    </hints>
   </connection>
@@ -589,7 +589,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>796</x>
-     <y>587</y>
+     <y>714</y>
     </hint>
    </hints>
   </connection>
@@ -605,7 +605,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>760</x>
-     <y>617</y>
+     <y>744</y>
     </hint>
    </hints>
   </connection>
@@ -617,7 +617,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>752</x>
-     <y>202</y>
+     <y>192</y>
     </hint>
     <hint type="destinationlabel">
      <x>434</x>
@@ -633,7 +633,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>752</x>
-     <y>232</y>
+     <y>281</y>
     </hint>
     <hint type="destinationlabel">
      <x>539</x>
@@ -649,7 +649,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>764</x>
-     <y>332</y>
+     <y>411</y>
     </hint>
     <hint type="destinationlabel">
      <x>520</x>
@@ -664,8 +664,8 @@
    <slot>SetFresnelG(double)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>764</x>
-     <y>292</y>
+     <x>754</x>
+     <y>371</y>
     </hint>
     <hint type="destinationlabel">
      <x>559</x>
@@ -680,8 +680,8 @@
    <slot>SetFresnelR(double)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>764</x>
-     <y>252</y>
+     <x>754</x>
+     <y>331</y>
     </hint>
     <hint type="destinationlabel">
      <x>547</x>
@@ -744,8 +744,8 @@
    <slot>SetPBS(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>691</x>
-     <y>253</y>
+     <x>747</x>
+     <y>213</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>

@@ -107,8 +107,8 @@ GLWidget::GLWidget(QWidget *parent)
       width_(0.0),
       height_(0.0),
       currentShader_(0),
-      currentTexture_(0),
       fresnel_(0.2, 0.2, 0.2),
+      currentTexture_(0),
       skyVisible_(true),
       metalness_(0),
       roughness_(0)
@@ -143,6 +143,31 @@ bool GLWidget::LoadModel(const QString &filename) {
   if (res) {
     mesh_.reset(mesh.release());
     camera_.UpdateModel(mesh_->min_, mesh_->max_);
+
+    // Check if index references are in bounds
+    for (size_t i = 0; i < mesh_->faces_.size(); i++) {
+        if (mesh_->faces_[i] * 3 >= mesh_->vertices_.size()) {
+            qDebug() << "WARNING: Face index out of bounds at " << i
+                     << " (index=" << mesh_->faces_[i] << ")";
+        }
+    }
+
+    if (initialized_){
+      // Unbind any active vertex arrays
+      glBindVertexArray(0);
+
+      // Delete old mesh buffers
+      glDeleteVertexArrays(1, &VAO);
+      glDeleteBuffers(1, &VBO_v);
+      glDeleteBuffers(1, &VBO_n);
+      glDeleteBuffers(1, &VBO_tc);
+      glDeleteBuffers(1, &VBO_i);
+
+      glDeleteVertexArrays(1, &VAO_sky);
+      glDeleteBuffers(1, &VBO_v_sky);
+      glDeleteBuffers(1, &VBO_v_sky);
+    }
+
     //mesh_->computeNormals();
 
     // TODO(students): Create / Initialize buffers.
@@ -343,8 +368,6 @@ void GLWidget::initializeGL ()
   glGenTextures(1, &color_map_);
   glGenTextures(1, &roughness_map_);
   glGenTextures(1, &metalness_map_);
-  //set current texture for ui texture mapping
-  SetCurrentTexture(3);
 
   //create shader programs
   programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//phong
@@ -364,7 +387,7 @@ void GLWidget::initializeGL ()
 
   if (!res) exit(0);
 
-  LoadModel(".null");//create an sphere
+  LoadModel(".null"); //create sphere
 
   initialized_ = true;
 }
@@ -514,8 +537,7 @@ void GLWidget::paintGL ()
             glUniform1i(metalness_map_location, 5);
 
             //TODO END
-
-            glUniform1i(current_text_location, currentTexture_);
+            glUniform1i(current_text_location, currentTexture_ + 3);
             glUniform3f(fresnel_location, fresnel_[0], fresnel_[1], fresnel_[2]);
             glUniform3f(light_location, 1, 1, 1);
             glUniform1f(roughness_location, roughness_);
@@ -627,5 +649,3 @@ void GLWidget::SetRoughness(double d) {
     roughness_ = d;
     update();
 }
-
-

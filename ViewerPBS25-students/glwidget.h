@@ -77,11 +77,6 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    */
   bool LoadMetalnessMap(const QString &filename);
 
-  /**
-   * @brief SetCurrentTexture sets the current texture to show
-   */
-  void SetCurrentTexture(int);
-
  protected:
   /**
    * @brief initializeGL Initializes OpenGL variables and loads, compiles and
@@ -187,8 +182,6 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    */
   float roughness_;
 
-
-
   GLuint VAO;
   GLuint VBO_v;
   GLuint VBO_n;
@@ -200,7 +193,6 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   GLuint VBO_i_sky;
   std::vector<float> skyVertices_;
   std::vector<int> skyFaces_;
-
 
  protected slots:
   /**
@@ -249,9 +241,14 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   void SetFresnelG(double);
 
   /**
-   * @brief SetCurrentTexture sets the current texture to show
+   * @brief SetSkyVisible enables/disables the skybox
    */
   void SetSkyVisible(bool set);
+
+  /**
+   * @brief SetCurrentTexture sets the current texture to show
+   */
+  void SetCurrentTexture(int);
 
   /**
    * @brief SetFaces Signal that updates the interface label "Framerate".
@@ -278,8 +275,6 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetFaces Signal that updates the interface label "Framerate".
    */
   void SetFramerate(QString);
-
-
 
 };
 
