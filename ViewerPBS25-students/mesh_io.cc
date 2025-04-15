@@ -216,7 +216,7 @@ bool ReadFromPly(const std::string &filename, TriangleMesh *mesh) {
 
   fin.close();
 
-  if(!hasNormals) ComputeVertexNormals(mesh->vertices_, mesh->faces_, &mesh->normals_);
+  // if(!hasNormals) ComputeVertexNormals(mesh->vertices_, mesh->faces_, &mesh->normals_);
   ComputeTexCoords(mesh->vertices_, &mesh->texCoords_);
   ComputeBoundingBox(mesh->vertices_, mesh);
 
