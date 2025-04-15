@@ -17,7 +17,9 @@ vec3 diffuse_part() {
 }
 
 float D(vec3 normal, vec3 h, float r){
-    float s_roughness = r * r;
+    // Prevent roughness from being exactly 0 to avoid numerical issues
+    float r_clamped = max(r, 0.001);
+    float s_roughness = r_clamped * r_clamped;
     float n_times_h = max(dot(normal,h),0.0);
     float s_n_times_h = n_times_h * n_times_h;
 
@@ -52,19 +54,24 @@ void main (void) {
 
     float distance = length(LightPos - FragPos);
     float attenuation = 1.0 / (distance * distance);
-    vec3 radiance = LightColor;
+    vec3 radiance = LightColor * attenuation;
 
     vec3 fv = F(v,halfway,F0);
     vec3 kS = fv;
     vec3 kD = vec3(1.0) - kS;
     kD *= 1.0 - metalness;
 
-    vec3 numerator = D(nm_Normal,halfway,roughness) * G(nm_Normal,v,k_direct) * fv;
+    vec3 numerator = D(nm_Normal,halfway,roughness) * G(nm_Normal,l,k_direct) * G(nm_Normal,v,k_direct) * fv;
     float denominator = 4.0 * max(dot(nm_Normal,v),0.0) * max(dot(nm_Normal,l),0.0);
     vec3 specular = numerator / max(denominator,0.001);
 
     vec3 Lo = vec3(0,0,0);
     float NdotL = max(dot(nm_Normal, l), 0.0);
     Lo += (kD * diffuse_part() + specular) * radiance * NdotL;
-    frag_color = vec4(Lo + (vec3(0.03) * Color),1.0);
+
+    // Fix for ambient contribution: respect metalness in ambient term
+    vec3 ambient = vec3(0.03);
+    ambient *= mix(Color, F0, metalness);
+
+    frag_color = vec4(Lo + ambient, 1.0);
 }

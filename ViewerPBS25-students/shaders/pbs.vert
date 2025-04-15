@@ -17,7 +17,7 @@ out vec3 nm_Normal;
 out vec3 FragPos;
 
 void main(void)  {
-    Color = vec3(1.0,0.0,0.0);
+    Color = vec3(0.969,0.863,0.6);
     LightColor = vec3(1.0,1.0,1.0);
     LightPos = vec3(view * vec4(light,1.0));
     nm_Normal = normalize(normal_matrix * normal);

@@ -531,7 +531,7 @@ void GLWidget::paintGL ()
             //TODO END
             glUniform1i(current_text_location, currentTexture_ + 3);
             glUniform3f(fresnel_location, fresnel_[0], fresnel_[1], fresnel_[2]);
-            glUniform3f(light_location, 1, 1, 1);
+            glUniform3f(light_location, 0.5f, 0.5f, 0.5f);
             glUniform1f(roughness_location, roughness_);
             glUniform1f(metalness_location, metalness_);
 
