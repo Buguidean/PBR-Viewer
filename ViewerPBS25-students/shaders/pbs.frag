@@ -3,17 +3,24 @@
 const float PI = 3.14159265359;
 uniform float roughness;
 uniform float metalness;
+uniform vec3 fresnel;
+uniform int pbstex_use;
+
+uniform sampler2D color_map;
+uniform sampler2D roughness_map;
+uniform sampler2D metalness_map;
 
 in vec3 Color;
 in vec3 LightColor;
 in vec3 LightPos;
 in vec3 nm_Normal;
 in vec3 FragPos;
+in vec2 TexCoord;
 
 out vec4 frag_color;
 
-vec3 diffuse_part() {
-    return Color/PI;
+vec3 diffuse_part(vec3 color) {
+    return color/PI;
 }
 
 float D(vec3 normal, vec3 h, float r){
@@ -42,36 +49,54 @@ vec3 F(vec3 v, vec3 h, vec3 F0){
 }
 
 void main (void) {
-    float s_roughness_p1 = (roughness+1)*(roughness+1);
-    float k_direct = s_roughness_p1 / 8;
-
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, Color, metalness);
+    vec3  u_Color;
+    float u_roughness;
+    float u_metalness;
 
     vec3 l = normalize(LightPos - FragPos);
     vec3 v = normalize(-FragPos);
     vec3 halfway = normalize(l+v);
 
-    float distance = length(LightPos - FragPos);
+    float distance    = length(LightPos - FragPos);
     float attenuation = 1.0 / (distance * distance);
-    vec3 radiance = LightColor * attenuation;
+    vec3  radiance    = LightColor * attenuation;
+
+    if (pbstex_use == 0)
+    {
+        u_Color     = Color;
+        u_roughness = roughness;
+        u_metalness = metalness;
+    }
+    else
+    {
+        u_Color     = (texture(color_map,TexCoord)).rgb;
+        u_roughness = (texture(roughness_map,TexCoord)).r;
+        u_metalness = (texture(metalness_map,TexCoord)).r;
+    }
+
+    vec3 F0 = fresnel;
+    F0 = mix(F0, u_Color, u_metalness);
 
     vec3 fv = F(v,halfway,F0);
     vec3 kS = fv;
     vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metalness;
+    kD *= 1.0 - u_metalness;
 
-    vec3 numerator = D(nm_Normal,halfway,roughness) * G(nm_Normal,l,k_direct) * G(nm_Normal,v,k_direct) * fv;
+    float s_roughness_p1 = (u_roughness+1)*(u_roughness+1);
+    float k_direct = s_roughness_p1 / 8;
+
+    vec3  numerator = D(nm_Normal,halfway,u_roughness) * G(nm_Normal,l,k_direct) * G(nm_Normal,v,k_direct) * fv;
     float denominator = 4.0 * max(dot(nm_Normal,v),0.0) * max(dot(nm_Normal,l),0.0);
-    vec3 specular = numerator / max(denominator,0.001);
+    vec3  specular = numerator / max(denominator,0.001);
 
-    vec3 Lo = vec3(0,0,0);
+    vec3  Lo = vec3(0,0,0);
     float NdotL = max(dot(nm_Normal, l), 0.0);
-    Lo += (kD * diffuse_part() + specular) * radiance * NdotL;
+
+    Lo += (kD * diffuse_part(u_Color) + specular) * radiance * NdotL;
 
     // Fix for ambient contribution: respect metalness in ambient term
     vec3 ambient = vec3(0.03);
-    ambient *= mix(Color, F0, metalness);
+    ambient *= mix(u_Color, F0, u_metalness);
 
     frag_color = vec4(Lo + ambient, 1.0);
 }

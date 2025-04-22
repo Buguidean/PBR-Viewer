@@ -5,7 +5,6 @@ uniform sampler2D current_texture;
 in vec2 TexCoord;
 in vec3 FragPos;			// Fragment position in ViewSpace
 in vec3 nm_Normal;
-in vec3 Color;
 in vec3 LightColor;
 in vec3 LightPos;			// Light position in ViewSpace
 

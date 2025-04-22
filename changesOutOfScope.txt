@@ -8,3 +8,11 @@
 // MINOR ADDITIONS //
 
 - Added an aditional skybox
+
+// Pending things:
+   - Gamma correction
+   - Check the fix for normal computation
+   - Texture PBR [x]
+   - IBL
+   - Code for the IBL texture generation thing
+   - Report (This includes testing and comparisons)

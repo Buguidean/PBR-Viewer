@@ -168,9 +168,14 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   int currentTexture_;
 
   /**
-   * @brief currentTexture_ Indicates the visible texture in texture mapping
+   * @brief skyVisible_ Enables use of skybox
    */
   bool skyVisible_;
+
+  /**
+   * @brief usePBStex_ Enables use of textures for PBS
+   */
+  int usePBStex_;
 
   /**
    * @brief metalness_ Indicates the general metalness properties of the model
@@ -244,6 +249,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetSkyVisible enables/disables the skybox
    */
   void SetSkyVisible(bool set);
+
+  /**
+   * @brief SetPBSTexture enables/disables the use of textures for PBS
+   */
+  void SetPBSTexture(bool set);
 
   /**
    * @brief SetCurrentTexture sets the current texture to show

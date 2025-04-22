@@ -515,7 +515,7 @@ void GLWidget::paintGL ()
             GLint projection_location, view_location, inv_view_location, model_location,
             normal_matrix_location, specular_map_location, diffuse_map_location,
             fresnel_location, color_map_location, roughness_map_location, metalness_map_location,
-            current_text_location, light_location, roughness_location, metalness_location;
+            current_text_location, light_location, roughness_location, metalness_location, usePBStex_location;
 
             //MESH-----------------------------------------------------------------------------------------
             //general shader setting
@@ -537,7 +537,7 @@ void GLWidget::paintGL ()
             light_location            = programs_[currentShader_]->uniformLocation("light");
             roughness_location        = programs_[currentShader_]->uniformLocation("roughness");
             metalness_location        = programs_[currentShader_]->uniformLocation("metalness");
-
+            usePBStex_location        = programs_[currentShader_]->uniformLocation("pbstex_use");
 
             glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
             glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -572,6 +572,7 @@ void GLWidget::paintGL ()
 
             //TODO END
             glUniform1i(current_text_location, currentTexture_ + 3);
+            glUniform1i(usePBStex_location, usePBStex_);
             glUniform3f(fresnel_location, fresnel_[0], fresnel_[1], fresnel_[2]);
             glUniform3f(light_location, 0.5f, 0.5f, 0.5f);
             glUniform1f(roughness_location, roughness_);
@@ -666,6 +667,12 @@ void GLWidget::SetCurrentTexture(int i)
 void GLWidget::SetSkyVisible(bool set)
 {
     skyVisible_ = set;
+    update();
+}
+
+void GLWidget::SetPBSTexture(bool set)
+{
+    set ? usePBStex_ = 1 : usePBStex_ = 0;
     update();
 }
 
