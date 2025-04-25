@@ -69,7 +69,7 @@ void main (void) {
     }
     else
     {
-        u_Color     = (texture(color_map,TexCoord)).rgb;
+        u_Color     = pow((texture(color_map,TexCoord)).rgb, vec3(2.2));
         u_roughness = (texture(roughness_map,TexCoord)).r;
         u_metalness = (texture(metalness_map,TexCoord)).r;
     }
@@ -98,5 +98,7 @@ void main (void) {
     vec3 ambient = vec3(0.03);
     ambient *= mix(u_Color, F0, u_metalness);
 
-    frag_color = vec4(Lo + ambient, 1.0);
+    vec3 FinalColor = Lo + ambient;
+    vec3 gammaResult = pow(FinalColor, vec3(1.0/2.2));
+    frag_color = vec4(FinalColor, 1.0);
 }

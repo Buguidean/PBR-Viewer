@@ -21,5 +21,6 @@ void main (void) {
     vec3 specular = spec * LightColor;
 
     vec3 Phong = (ambient + diffuse + specular) * Color;
-    frag_color = vec4(Phong,1.0);
+    vec3 gammaResult = pow(Phong, vec3(1.0/2.2));
+    frag_color = vec4(gammaResult,1.0);
 }
