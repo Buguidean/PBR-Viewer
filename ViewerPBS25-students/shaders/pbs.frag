@@ -100,5 +100,5 @@ void main (void) {
 
     vec3 FinalColor = Lo + ambient;
     vec3 gammaResult = pow(FinalColor, vec3(1.0/2.2));
-    frag_color = vec4(FinalColor, 1.0);
+    frag_color = vec4(gammaResult, 1.0);
 }
