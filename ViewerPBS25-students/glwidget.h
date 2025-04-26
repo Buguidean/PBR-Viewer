@@ -178,6 +178,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   int usePBStex_;
 
   /**
+   * @brief useIBLdirl_ Enables directlight when using IBL shader
+   */
+  int useIBLdirl_;
+
+  /**
    * @brief metalness_ Indicates the general metalness properties of the model
    */
   float metalness_;
@@ -254,6 +259,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetPBSTexture enables/disables the use of textures for PBS
    */
   void SetPBSTexture(bool set);
+
+  /**
+   * @brief SetPBLDirectLight enables/disables the use of direct lighting when using ibl
+   */
+  void SetIBLDirectLight(bool set);
 
   /**
    * @brief SetCurrentTexture sets the current texture to show

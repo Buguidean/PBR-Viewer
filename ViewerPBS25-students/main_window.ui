@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>827</width>
-    <height>840</height>
+    <height>701</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -359,6 +359,19 @@
           <string>TexturePBS</string>
          </property>
         </widget>
+        <widget class="QCheckBox" name="check_direct">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>460</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>IBLDirect</string>
+         </property>
+        </widget>
        </widget>
       </item>
       <item>
@@ -570,6 +583,7 @@
     <slot>SetRoughness(double)</slot>
     <slot>SetMetalness(double)</slot>
     <slot>SetPBSTexture(bool)</slot>
+    <slot>SetIBLDirectLight(bool)</slot>
    </slots>
   </customwidget>
  </customwidgets>
@@ -824,6 +838,22 @@
     <hint type="sourcelabel">
      <x>715</x>
      <y>481</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>430</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>check_direct</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetIBLDirectLight(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>711</x>
+     <y>501</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
