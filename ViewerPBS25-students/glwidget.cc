@@ -303,11 +303,37 @@ bool GLWidget::LoadModel(const QString &filename) {
 }
 
 bool GLWidget::LoadSpecularMap(const QString &dir) {
-  glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
-  bool res = LoadCubeMap(dir);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-  update();
-  return res;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
+    bool res = LoadCubeMap(dir);
+    if (res) {
+        // Get the dimensions of the base level
+        GLint width, height;
+        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
+        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
+        qDebug() << "Base texture size:" << width << "x" << height;
+
+        // Make sure proper texture parameters are set
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 13); // Limit to 5 levels for testing
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+        // Generate mipmaps
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+        // Verify mipmap generation by checking level 1 size
+        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 1, GL_TEXTURE_WIDTH, &width);
+        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 1, GL_TEXTURE_HEIGHT, &height);
+        qDebug() << "Mipmap level 1 size:" << width << "x" << height;
+
+        // Check if OpenGL reported any errors
+        GLenum err = glGetError();
+        if (err != GL_NO_ERROR) {
+            qDebug() << "OpenGL error during mipmap generation:" << err;
+        }
+    }
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    update();
+    return res;
 }
 
 bool GLWidget::LoadDiffuseMap(const QString &dir) {
@@ -395,6 +421,7 @@ void GLWidget::initializeGL ()
   glDisable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
   //generating needed textures
   glGenTextures(1, &specular_map_);
