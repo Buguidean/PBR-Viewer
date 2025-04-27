@@ -10,18 +10,18 @@ find_package(glm REQUIRED)
 find_package(OpenMP REQUIRED)
 
 # Add executable
-add_executable(irradiance_generator
+add_executable(IBLcompute
   main.cpp
   IMG.cpp
 )
 
 # Add stb_image header search path
-target_include_directories(irradiance_generator PRIVATE 
+target_include_directories(IBLcompute PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/libs
 )
 
 # Link libraries
-target_link_libraries(irradiance_generator PRIVATE 
+target_link_libraries(IBLcompute PRIVATE 
   glm::glm
   m
   OpenMP::OpenMP_CXX

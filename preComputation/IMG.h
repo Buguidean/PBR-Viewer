@@ -27,17 +27,24 @@ public:
 
     bool loadCubemap(const std::string& inputCubemapDir);
     bool computeIrradianceMap(int outputSize, int numSamples);
+    bool computeSpecularIBL(int outputSize, int numSamples);
     bool saveIrradianceMap(const std::string& outputPath);
+    bool saveSpecularIBL(const std::string& outputPath);
 
 private:
 
+    // Specular IBL mipmap generation
+    bool generateMipMaps(int outputSize);
+
+    // Shared functions for diffuse/specular IBL
     glm::vec3 sampleCubemap(const glm::vec3& direction);
-    glm::vec3 sampleCubemapBilinear(int faceIndex, float u, float v); 
+    glm::vec3 sampleCubemapBilinear(int faceIndex, float u, float v);
     glm::vec3 getTexelColor(int faceIndex, int x, int y);
     bool directionToFaceUV(const glm::vec3& direction, int* faceIndex, float* u, float* v);
 
     std::shared_ptr<CubemapData> m_inputCubemap;
     std::shared_ptr<CubemapData> m_irradianceMap;
+    std::array<std::shared_ptr<CubemapData>,5> m_specularMap;
     std::vector<CubemapFace> m_cubemapFaces;
 
     int m_outputSize;

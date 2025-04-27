@@ -35,8 +35,8 @@ IMG::~IMG() {
 }
 
 bool IMG::loadCubemap(const std::string& inputCubemapDir) {
-    const std::string faceNames[6] = {
-        "posx", "negx", "posy", "negy", "posz", "negz"
+    const std::string faceNames[12] = {
+        "posx", "negx", "posy", "negy", "posz", "negz", "right", "left", "top", "bottom", "back", "front"
     };
     
     m_inputCubemap = std::make_shared<CubemapData>();
@@ -46,8 +46,11 @@ bool IMG::loadCubemap(const std::string& inputCubemapDir) {
     for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
         std::string facePath = inputCubemapDir + "/" + faceNames[faceIndex] + ".png";
         if (!fileExists(facePath)) {
-            std::cerr << "Could not find face file for: " << faceNames[faceIndex] << std::endl;
-            return false;
+            facePath = inputCubemapDir + "/" + faceNames[faceIndex + 6] + ".png";
+            if (!fileExists(facePath)){
+                std::cerr << "Could not find face file for: " << faceNames[faceIndex] << std::endl;
+                return false;
+            }
         }
         unsigned char* data = stbi_load(facePath.c_str(), &faceWidth, &faceHeight, &faceChannels, 0);
         if (!data) {
@@ -91,11 +94,11 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
 
     float PI = glm::pi<float>();
     
-    // Parallelize across all pixels in all faces
     #pragma omp parallel for collapse(3) schedule(dynamic)
     for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
         for (int y = 0; y < outputSize; y++) {
             for (int x = 0; x < outputSize; x++) {
+                // [-1, 1]
                 float u = (2.0f * x / outputSize) - 1.0f;
                 float v = (2.0f * y / outputSize) - 1.0f;
                 
@@ -110,10 +113,6 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
                     case 5: direction = glm::normalize(glm::vec3( -u, -v,-1.0f)); break; // -Z
                 }
                 
-                // Set view = normal for diffuse irradiance
-                glm::vec3 normal = direction;
-                glm::vec3 view = normal;
-                
                 int pixelIndex = (faceIndex * outputSize * outputSize) + (y * outputSize) + x;
                 glm::vec4 accumLocal(0.0f); // Local accumulator for each thread
                 
@@ -123,10 +122,10 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
 
                 while (remainingSamples > 0) {                  
                     glm::vec2 hammersleyPoint = ::hammersley2D(sampleId, numSamples);
-                    glm::vec3 L = hammersleyToDirection(hammersleyPoint.x, hammersleyPoint.y, normal);
+                    glm::vec3 L = hammersleyToDirection(hammersleyPoint.x, hammersleyPoint.y, direction);
                     
-                    // Calculate NoL
-                    float NdotL = glm::dot(normal, L);
+                    // Calculate NoL (Direction is the normal)
+                    float NdotL = glm::dot(direction, L);
                     
                     // If the sample contributes (is in the hemisphere)
                     if (NdotL > 0.0f) {                      
@@ -151,11 +150,100 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
                     accumLocal.z /= accumLocal.w;
                 }
                 
-                // Store the result in the irradiance map (no race condition since each thread writes to different location)
                 int offset = (faceIndex * outputSize * outputSize + y * outputSize + x) * m_irradianceMap->channels;
                 m_irradianceMap->data[offset + 0] = accumLocal.x;
                 m_irradianceMap->data[offset + 1] = accumLocal.y;
                 m_irradianceMap->data[offset + 2] = accumLocal.z;
+            }
+        }
+    }
+    
+    return true;
+}
+
+bool IMG::generateMipMaps(int outputSize){
+    if (outputSize < 32){
+        return false;
+    }
+
+    int mipSize = outputSize;
+    for (int i = 0 ; i < 5 ; i++){
+        m_specularMap[i] = std::make_shared<CubemapData>();
+        m_specularMap[i]->width = mipSize;
+        m_specularMap[i]->height = mipSize;
+        m_specularMap[i]->channels = 3;
+        m_specularMap[i]->data.resize(mipSize * mipSize * 6 * m_specularMap[i]->channels, 0.0f);
+
+        mipSize /= 2;
+    }
+
+    return true;
+}
+
+bool IMG::computeSpecularIBL(int outputSize, int numSamples) {
+    m_outputSize = outputSize;
+    if (!generateMipMaps(outputSize)){
+        std::cerr<<"Output size too small for 5 mipmaps"<<std::endl;
+        return false;
+    }
+
+    for (int mipLevel = 0; mipLevel < 5; mipLevel++) {
+
+        int mipSize = outputSize >> mipLevel;
+        float roughness = static_cast<float>(mipLevel) / 4.0f;
+        
+        #pragma omp parallel for collapse(3) schedule(dynamic)
+        for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
+            for (int y = 0; y < mipSize; y++) {
+                for (int x = 0; x < mipSize; x++) {
+                    // [-1, 1] range
+                    float u = (2.0f * x / mipSize) - 1.0f;
+                    float v = (2.0f * y / mipSize) - 1.0f;
+                    
+                    // (Direction is the normal)
+                    glm::vec3 direction;
+                    switch (faceIndex) {
+                        case 0: direction = glm::normalize(glm::vec3( 1.0f, -v, -u)); break; // +X
+                        case 1: direction = glm::normalize(glm::vec3(-1.0f, -v,  u)); break; // -X
+                        case 2: direction = glm::normalize(glm::vec3(  u, 1.0f,  v)); break; // +Y
+                        case 3: direction = glm::normalize(glm::vec3(  u,-1.0f, -v)); break; // -Y
+                        case 4: direction = glm::normalize(glm::vec3(  u, -v, 1.0f)); break; // +Z
+                        case 5: direction = glm::normalize(glm::vec3( -u, -v,-1.0f)); break; // -Z
+                    }
+                    
+                    glm::vec4 accumLocal(0.0f);
+                    
+                    for (int sampleId = 0; sampleId < numSamples; sampleId++) {
+
+                        glm::vec2 hammersleyPoint = ::hammersley2D(sampleId, numSamples);
+                        glm::vec3 H = importanceSampleGGX(hammersleyPoint.x, hammersleyPoint.y, direction, roughness);
+                        glm::vec3 L = glm::normalize(2.0f * glm::dot(direction, H) * H - direction);
+                        
+                        float NdotL = glm::dot(direction, L);
+                        
+                        if (NdotL > 0.0f) {
+                            glm::vec3 sampleColor = sampleCubemap(L);
+                            
+                            accumLocal.x += sampleColor.r * NdotL;
+                            accumLocal.y += sampleColor.g * NdotL;
+                            accumLocal.z += sampleColor.b * NdotL;
+                            accumLocal.w += NdotL;
+                        }
+                    }
+
+                    // Normalize
+                    if (accumLocal.w > 0.0f) {
+                        accumLocal.x /= accumLocal.w;
+                        accumLocal.y /= accumLocal.w;
+                        accumLocal.z /= accumLocal.w;
+                    }
+                    
+                    // Use correct mipSize for offset calculation
+                    int offset = (faceIndex * mipSize * mipSize + y * mipSize + x) * m_specularMap[mipLevel]->channels;
+                    m_specularMap[mipLevel]->data[offset + 0] = accumLocal.x;
+                    m_specularMap[mipLevel]->data[offset + 1] = accumLocal.y;
+                    m_specularMap[mipLevel]->data[offset + 2] = accumLocal.z;
+                }
             }
         }
     }
@@ -203,7 +291,7 @@ glm::vec3 IMG::sampleCubemapBilinear(int faceIndex, float u, float v) {
     // Bilinear interpolation
     glm::vec3 c1 = c11 * (1.0f - fx) + c21 * fx;
     glm::vec3 c2 = c12 * (1.0f - fx) + c22 * fx;
-    glm::vec3 c = c1 * (1.0f - fy) + c2 * fy;
+    glm::vec3 c  = c1 * (1.0f - fy) + c2 * fy;
     
     return c;
 }
@@ -262,7 +350,7 @@ bool IMG::saveIrradianceMap(const std::string& outputPath) {
     
     // For simplicity, we'll save each face as a separate file
     const std::string faceNames[6] = {
-        "_posx", "_negx", "_posy", "_negy", "_posz", "_negz"
+        "right", "left", "top", "bottom", "back", "front"
     };
     
     for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
@@ -291,6 +379,52 @@ bool IMG::saveIrradianceMap(const std::string& outputPath) {
         }
         
         std::cout << "Saved face: " << facePath << std::endl;
+    }
+    
+    return true;
+}
+
+bool IMG::saveSpecularIBL(const std::string& outputPath){
+    if (!m_specularMap[0]) {
+        std::cerr << "No specular map to save" << std::endl;
+        return false;
+    }
+    
+    // For simplicity, we'll save each face as a separate file
+    const std::string faceNames[6] = {
+        "right", "left", "top", "bottom", "back", "front"
+    };
+    
+    for (int mipLevel = 0 ; mipLevel < 5 ; mipLevel++){
+        int mipSize = m_outputSize >> mipLevel;
+        std::string mip = std::to_string(mipLevel);
+        for (int faceIndex = 0; faceIndex < 6; faceIndex++) {
+            std::string facePath = outputPath + mip + "_" + faceNames[faceIndex] + ".png";
+            std::vector<unsigned char> faceData(mipSize * mipSize * 4);
+            for (int y = 0; y < mipSize; y++) {
+                for (int x = 0; x < mipSize; x++) {
+                    int srcOffset = (faceIndex * mipSize * mipSize + y * mipSize + x) * m_specularMap[mipLevel]->channels;
+                    int dstOffset = (y * mipSize + x) * 4; // Always use RGBA
+                    
+                    for (int c = 0; c < 3; c++) { // Process RGB
+                        float value = m_specularMap[mipLevel]->data[srcOffset + c];
+                        faceData[dstOffset + c] = static_cast<unsigned char>(255.0f * std::min(1.0f, std::max(0.0f, value)));
+                    }
+                    
+                    // Always set alpha to fully opaque
+                    faceData[dstOffset + 3] = 255;
+                }
+            }
+            
+            // Save the face image as PNG
+            if (!stbi_write_png(facePath.c_str(), mipSize, mipSize, 4, 
+                            faceData.data(), mipSize * 4)) {
+                std::cerr << "Failed to save face: " << facePath << std::endl;
+                return false;
+            }
+            
+            std::cout << "Saved face: " << facePath << std::endl;
+        }
     }
     
     return true;
