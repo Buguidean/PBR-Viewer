@@ -107,7 +107,7 @@ GLWidget::GLWidget(QWidget *parent)
       width_(0.0),
       height_(0.0),
       currentShader_(0),
-      fresnel_(0.2, 0.2, 0.2),
+      fresnel_(0.05, 0.05, 0.05),
       currentTexture_(0),
       skyVisible_(true),
       metalness_(0),
@@ -124,9 +124,6 @@ GLWidget::~GLWidget() {
 }
 
 bool GLWidget::LoadModel(const QString &filename) {
-    // Clear any previous errors
-    while (glGetError() != GL_NO_ERROR) {}
-
     std::string file = filename.toUtf8().constData();
     size_t pos = file.find_last_of(".");
     std::string type = file.substr(pos + 1);
@@ -144,15 +141,10 @@ bool GLWidget::LoadModel(const QString &filename) {
     }
 
     if (res) {
-        // Clear old mesh data
-        if (mesh_) {
-            mesh_.reset();
-        }
-
+        mesh_.reset();
         mesh_.reset(mesh.release());
         camera_.UpdateModel(mesh_->min_, mesh_->max_);
 
-        // Make sure we're in the right OpenGL context
         if (this->isValid()) {
             makeCurrent();
         }
@@ -161,11 +153,6 @@ bool GLWidget::LoadModel(const QString &filename) {
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        // Disable all vertex attribute arrays
-        for (int i = 0; i < 8; i++) {
-            glDisableVertexAttribArray(i);
-        }
 
         // Delete old buffers
         if (initialized_) {
@@ -190,112 +177,106 @@ bool GLWidget::LoadModel(const QString &filename) {
             glFinish();
         }
 
-        // Create and setup mesh buffers
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO_v);
-        glGenBuffers(1, &VBO_n);
-        glGenBuffers(1, &VBO_tc);
-        glGenBuffers(1, &VBO_i);
+        // TODO(students): Create / Initialize buffers.
+        // MESH: You need to create 1 VAO and 4 VBO
+        // mesh_->vertices -> attrib location 0
+        // mesh_->normals -> attrib location 1
+        // mesh_->texCoords -> attrib location 2
+        // mesh_->faces -> elements
 
-        // Verify buffer IDs
-        if (VAO == 0 || VBO_v == 0 || VBO_n == 0 || VBO_tc == 0 || VBO_i == 0) {
-            qDebug() << "Failed to generate mesh buffer IDs";
-            return false;
-        }
+        glGenVertexArrays(1,&VAO);
+        glGenBuffers(1,&VBO_v);
+        glGenBuffers(1,&VBO_n);
+        glGenBuffers(1,&VBO_tc);
+        glGenBuffers(1,&VBO_i);
 
-        // Setup mesh VAO and buffers
         glBindVertexArray(VAO);
-
-        // Setup vertices
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_v);
-        glBufferData(GL_ARRAY_BUFFER, mesh_->vertices_.size() * sizeof(float),
-                     &mesh_->vertices_[0], GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        // Vertices VBO data initialization
+        glBindBuffer(GL_ARRAY_BUFFER,VBO_v);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(float)*mesh_->vertices_.size(),&mesh_->vertices_[0],GL_STATIC_DRAW);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,0);
         glEnableVertexAttribArray(0);
+        // Normals VBO data initialization
+        glBindBuffer(GL_ARRAY_BUFFER,VBO_n);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(float)*mesh_->normals_.size(),&mesh_->normals_[0],GL_STATIC_DRAW);
+        glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,0);
+        glEnableVertexAttribArray(1);
+        // TextureCoords VBO data initialization
+        glBindBuffer(GL_ARRAY_BUFFER,VBO_tc);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(float)*mesh_->texCoords_.size(),&mesh_->texCoords_[0],GL_STATIC_DRAW);
+        glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,0,0);
+        glEnableVertexAttribArray(2);
+        // Faces VBO data initialization
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(int)*mesh_->faces_.size(),&mesh_->faces_[0],GL_STATIC_DRAW);
 
-        // Setup normals
-        if (!mesh_->normals_.empty()) {
-            glBindBuffer(GL_ARRAY_BUFFER, VBO_n);
-            glBufferData(GL_ARRAY_BUFFER, mesh_->normals_.size() * sizeof(float),
-                         &mesh_->normals_[0], GL_STATIC_DRAW);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-            glEnableVertexAttribArray(1);
-        }
-
-        // Setup texture coordinates
-        if (!mesh_->texCoords_.empty()) {
-            glBindBuffer(GL_ARRAY_BUFFER, VBO_tc);
-            glBufferData(GL_ARRAY_BUFFER, mesh_->texCoords_.size() * sizeof(float),
-                         &mesh_->texCoords_[0], GL_STATIC_DRAW);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glEnableVertexAttribArray(2);
-        }
-
-        // Setup indices
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_i);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh_->faces_.size() * sizeof(int),
-                     &mesh_->faces_[0], GL_STATIC_DRAW);
-
-        // IMPORTANT: Don't unbind GL_ELEMENT_ARRAY_BUFFER while VAO is bound
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        // DON'T unbind element buffer here
 
-        // Setup skybox
+        // SKY BOX: You need to create 1 VAO and 2 VBO:
+        // vertices -> attrib location 0
+        // faces -> elements
+
+        /*
+         *          4           5
+         *      6           7
+         *
+         *
+         *          0           1
+         *      2           3
+         */
+
         skyVertices_ = {
             -1.0f, -1.0f,  1.0f,    // 0
-            1.0f, -1.0f,  1.0f,    // 1
+             1.0f, -1.0f,  1.0f,    // 1
             -1.0f, -1.0f, -1.0f,    // 2
-            1.0f, -1.0f, -1.0f,    // 3
+             1.0f, -1.0f, -1.0f,    // 3
             -1.0f,  1.0f,  1.0f,    // 4
-            1.0f,  1.0f,  1.0f,    // 5
+             1.0f,  1.0f,  1.0f,    // 5
             -1.0f,  1.0f, -1.0f,    // 6
-            1.0f,  1.0f, -1.0f     // 7
+             1.0f,  1.0f, -1.0f     // 7
         };
 
         skyFaces_ = {
-            0,1,2, 1,2,3, 4,5,6, 5,6,7,
-            0,2,4, 2,4,6, 1,3,5, 3,5,7,
-            0,1,4, 1,4,5, 2,3,6, 3,6,7
+            0,1,2,
+            1,2,3,
+            4,5,6,
+            5,6,7,
+            0,2,4,
+            2,4,6,
+            1,3,5,
+            3,5,7,
+            0,1,4,
+            1,4,5,
+            2,3,6,
+            3,6,7
         };
 
-        // Create and setup skybox buffers
-        glGenVertexArrays(1, &VAO_sky);
-        glGenBuffers(1, &VBO_v_sky);
-        glGenBuffers(1, &VBO_i_sky);
+        glGenVertexArrays(1,&VAO_sky);
+        glGenBuffers(1,&VBO_v_sky);
+        glGenBuffers(1,&VBO_i_sky);
 
-        if (VAO_sky == 0 || VBO_v_sky == 0 || VBO_i_sky == 0) {
-            qDebug() << "Failed to generate skybox buffer IDs";
-            return false;
-        }
-
-        // Setup skybox VAO and buffers
         glBindVertexArray(VAO_sky);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO_v_sky);
-        glBufferData(GL_ARRAY_BUFFER, skyVertices_.size() * sizeof(float),
-                     &skyVertices_[0], GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        // Vertices VBO data initialization
+        glBindBuffer(GL_ARRAY_BUFFER,VBO_v_sky);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(float)*skyVertices_.size(),&skyVertices_[0],GL_STATIC_DRAW);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,0);
         glEnableVertexAttribArray(0);
+        // Faces VBO data initialization
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i_sky);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(int)*skyFaces_.size(),&skyFaces_[0],GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO_i_sky);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, skyFaces_.size() * sizeof(int),
-                     &skyFaces_[0], GL_STATIC_DRAW);
-
-        // IMPORTANT: Don't unbind GL_ELEMENT_ARRAY_BUFFER while VAO is bound
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Now safe to unbind element buffer
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         initialized_ = true;
 
+        // TODO END.
+
         emit SetFaces(QString(std::to_string(mesh_->faces_.size() / 3).c_str()));
-        emit SetVertices(QString(std::to_string(mesh_->vertices_.size() / 3).c_str()));
-
-        update();
-
+        emit SetVertices(
+            QString(std::to_string(mesh_->vertices_.size() / 3).c_str()));
         return true;
     }
 
