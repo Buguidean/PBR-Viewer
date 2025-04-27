@@ -112,8 +112,8 @@
         <widget class="QDoubleSpinBox" name="spin_f0r">
          <property name="geometry">
           <rect>
-           <x>70</x>
-           <y>300</y>
+           <x>80</x>
+           <y>280</y>
            <width>69</width>
            <height>27</height>
           </rect>
@@ -125,14 +125,14 @@
           <double>0.050000000000000</double>
          </property>
          <property name="value">
-          <double>0.200000000000000</double>
+          <double>0.050000000000000</double>
          </property>
         </widget>
         <widget class="QDoubleSpinBox" name="spin_f0g">
          <property name="geometry">
           <rect>
-           <x>70</x>
-           <y>340</y>
+           <x>80</x>
+           <y>320</y>
            <width>69</width>
            <height>27</height>
           </rect>
@@ -144,14 +144,14 @@
           <double>0.050000000000000</double>
          </property>
          <property name="value">
-          <double>0.200000000000000</double>
+          <double>0.050000000000000</double>
          </property>
         </widget>
         <widget class="QDoubleSpinBox" name="spin_f0b">
          <property name="geometry">
           <rect>
            <x>80</x>
-           <y>380</y>
+           <y>360</y>
            <width>69</width>
            <height>27</height>
           </rect>
@@ -163,14 +163,14 @@
           <double>0.050000000000000</double>
          </property>
          <property name="value">
-          <double>0.200000000000000</double>
+          <double>0.050000000000000</double>
          </property>
         </widget>
         <widget class="QLabel" name="label">
          <property name="geometry">
           <rect>
            <x>30</x>
-           <y>290</y>
+           <y>280</y>
            <width>31</width>
            <height>31</height>
           </rect>
@@ -183,7 +183,7 @@
          <property name="geometry">
           <rect>
            <x>30</x>
-           <y>340</y>
+           <y>320</y>
            <width>31</width>
            <height>31</height>
           </rect>
@@ -196,7 +196,7 @@
          <property name="geometry">
           <rect>
            <x>30</x>
-           <y>380</y>
+           <y>360</y>
            <width>31</width>
            <height>31</height>
           </rect>
