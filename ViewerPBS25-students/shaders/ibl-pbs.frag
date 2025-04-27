@@ -7,19 +7,15 @@ uniform vec3 fresnel;
 uniform int pbstex_use;
 uniform int direct_light;
 
-// Material textures
 uniform sampler2D color_map;
 uniform sampler2D roughness_map;
 uniform sampler2D metalness_map;
 
-// IBL environment maps
 uniform samplerCube diffuse_map;
 uniform samplerCube specular_map;
 
-// Matrices
 uniform mat4 inv_view;
 
-// Light information
 in vec3 LightColor;
 in vec3 LightPos;
 
@@ -36,7 +32,6 @@ vec3 diffuse_part(vec3 color) {
 }
 
 float D(vec3 normal, vec3 h, float r) {
-    // Prevent roughness from being exactly 0 to avoid numerical issues
     float r_clamped = max(r, 0.001);
     float s_roughness = r_clamped * r_clamped;
     float n_times_h = max(dot(normal, h), 0.0);
@@ -70,7 +65,6 @@ void main(void) {
     float u_roughness;
     float u_metalness;
 
-    // Get material properties from either textures or uniforms
     if (pbstex_use == 0) {
         u_Color = Color;
         u_roughness = roughness;
@@ -96,34 +90,34 @@ void main(void) {
     // ===== DIRECT LIGHTING CONTRIBUTION =====
     vec3 Lo = vec3(0.0);
     if (direct_light == 1){
-            // Light direction in view space
-            vec3 l = normalize(LightPos - FragPos);
-            vec3 h = normalize(l + v);
+        // Light direction in view space
+        vec3 l = normalize(LightPos - FragPos);
+        vec3 h = normalize(l + v);
 
-            // Calculate attenuation
-            float distance = length(LightPos - FragPos);
-            float attenuation = 1.0 / (distance * distance);
-            vec3 radiance = LightColor * attenuation;
+        // Calculate attenuation
+        float distance = length(LightPos - FragPos);
+        float attenuation = 1.0 / (distance * distance);
+        vec3 radiance = LightColor * attenuation;
 
-            // BRDF terms for direct lighting
-            vec3 F_direct = F(v, h, F0);
-            vec3 kS_direct = F_direct;
-            vec3 kD_direct = vec3(1.0) - kS_direct;
-            kD_direct *= 1.0 - u_metalness;
+        // BRDF terms for direct lighting
+        vec3 F_direct = F(v, h, F0);
+        vec3 kS_direct = F_direct;
+        vec3 kD_direct = vec3(1.0) - kS_direct;
+        kD_direct *= 1.0 - u_metalness;
 
-            float s_roughness_p1 = (u_roughness + 1.0) * (u_roughness + 1.0);
-            float k_direct = s_roughness_p1 / 8.0;
+        float s_roughness_p1 = (u_roughness + 1.0) * (u_roughness + 1.0);
+        float k_direct = s_roughness_p1 / 8.0;
 
-            vec3 numerator = D(nm_Normal, h, u_roughness) *
-                              G(nm_Normal, l, k_direct) *
-                              G(nm_Normal, v, k_direct) *
-                              F_direct;
-            float denominator = 4.0 * max(dot(nm_Normal, v), 0.0) *
-                               max(dot(nm_Normal, l), 0.0);
-            vec3 specular = numerator / max(denominator, 0.001);
+        vec3 numerator = D(nm_Normal, h, u_roughness) *
+                G(nm_Normal, l, k_direct) *
+                G(nm_Normal, v, k_direct) *
+                F_direct;
+        float denominator = 4.0 * max(dot(nm_Normal, v), 0.0) *
+                max(dot(nm_Normal, l), 0.0);
+        vec3 specular = numerator / max(denominator, 0.001);
 
-            float NdotL = max(dot(nm_Normal, l), 0.0);
-            Lo += (kD_direct * diffuse_part(u_Color) + specular) * radiance * NdotL;
+        float NdotL = max(dot(nm_Normal, l), 0.0);
+        Lo += (kD_direct * diffuse_part(u_Color) + specular) * radiance * NdotL;
     }
 
     // ===== AMBIENT/IBL CONTRIBUTION =====
@@ -135,7 +129,7 @@ void main(void) {
     // Sample the specular environment map
     vec3 R = reflect(-V, worldNormal);
     // Use roughness to determine the mip level
-    vec3 specularIrradiance = textureLod(specular_map, R, u_roughness * 13.0).rgb;
+    vec3 specularIrradiance = textureLod(specular_map, R, u_roughness * 4.0).rgb;
     // Apply gamma correction to the environment map
     specularIrradiance = pow(specularIrradiance, vec3(2.2));
 
@@ -154,7 +148,7 @@ void main(void) {
 
     // Combine diffuse and specular IBL contributions
     vec3 diffuse_ibl = irradiance * diffuse_part(u_Color);
-    vec3 specular_ibl = specularIrradiance * (F_ambient * G_IBL);
+    vec3 specular_ibl = specularIrradiance * (F_ambient * G_IBL) / (4.0 * NdotV);
     vec3 ambient = kD_ambient * diffuse_ibl + specular_ibl;
 
     // ===== COMBINE BOTH CONTRIBUTIONS =====

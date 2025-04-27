@@ -20,12 +20,12 @@ const double kZNear = 0.0001;
 const double kZFar = 20;
 
 const std::vector<std::vector<std::string>> kShaderFiles = {
-                {"../shaders/phong.vert",        "../shaders/phong.frag"},
-                {"../shaders/texMap.vert",       "../shaders/texMap.frag"},
-                {"../shaders/reflection.vert",   "../shaders/reflection.frag"},
-                {"../shaders/pbs.vert",          "../shaders/pbs.frag"},
-                {"../shaders/ibl-pbs.vert",      "../shaders/ibl-pbs.frag"},
-                {"../shaders/sky.vert",          "../shaders/sky.frag"}};//sky needs to be the last one
+    {"../shaders/phong.vert",        "../shaders/phong.frag"},
+    {"../shaders/texMap.vert",       "../shaders/texMap.frag"},
+    {"../shaders/reflection.vert",   "../shaders/reflection.frag"},
+    {"../shaders/pbs.vert",          "../shaders/pbs.frag"},
+    {"../shaders/ibl-pbs.vert",      "../shaders/ibl-pbs.frag"},
+    {"../shaders/sky.vert",          "../shaders/sky.frag"}};//sky needs to be the last one
 
 const int kVertexAttributeIdx = 0;
 const int kNormalAttributeIdx = 1;
@@ -33,94 +33,94 @@ const int kTexCoordAttributeIdx = 2;
 
 
 bool ReadFile(const std::string filename, std::string *shader_source) {
-  std::ifstream infile(filename.c_str());
+    std::ifstream infile(filename.c_str());
 
-  if (!infile.is_open() || !infile.good()) {
-    std::cerr << "Error " + filename + " not found." << std::endl;
-    return false;
-  }
+    if (!infile.is_open() || !infile.good()) {
+        std::cerr << "Error " + filename + " not found." << std::endl;
+        return false;
+    }
 
-  std::stringstream stream;
-  stream << infile.rdbuf();
-  infile.close();
+    std::stringstream stream;
+    stream << infile.rdbuf();
+    infile.close();
 
-  *shader_source = stream.str();
-  return true;
+    *shader_source = stream.str();
+    return true;
 }
 
-bool LoadImage(const std::string &path, GLuint cube_map_pos) {
-  QImage image;
-  bool res = image.load(path.c_str());
-  if (res) {
-    QImage gl_image = image.mirrored();
-    glTexImage2D(cube_map_pos, 0, GL_RGBA, image.width(), image.height(), 0,
-                 GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-  }
-  return res;
+bool LoadImage(const std::string &path, GLuint cube_map_pos, GLint mipLevel = 0) {
+    QImage image;
+    bool res = image.load(path.c_str());
+    if (res) {
+        QImage gl_image = image.mirrored();
+        glTexImage2D(cube_map_pos, mipLevel, GL_RGBA, image.width(), image.height(), 0,
+                     GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
+    }
+    return res;
 }
 
 bool LoadCubeMap(const QString &dir) {
-  std::string path = dir.toUtf8().constData();
-  bool res = LoadImage(path + "/right.png", GL_TEXTURE_CUBE_MAP_POSITIVE_X);
-  res = res && LoadImage(path + "/left.png", GL_TEXTURE_CUBE_MAP_NEGATIVE_X);
-  res = res && LoadImage(path + "/top.png", GL_TEXTURE_CUBE_MAP_POSITIVE_Y);
-  res = res && LoadImage(path + "/bottom.png", GL_TEXTURE_CUBE_MAP_NEGATIVE_Y);
-  res = res && LoadImage(path + "/back.png", GL_TEXTURE_CUBE_MAP_POSITIVE_Z);
-  res = res && LoadImage(path + "/front.png", GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
+    std::string path = dir.toUtf8().constData();
+    bool res = LoadImage(path + "/right.png", GL_TEXTURE_CUBE_MAP_POSITIVE_X);
+    res = res && LoadImage(path + "/left.png", GL_TEXTURE_CUBE_MAP_NEGATIVE_X);
+    res = res && LoadImage(path + "/top.png", GL_TEXTURE_CUBE_MAP_POSITIVE_Y);
+    res = res && LoadImage(path + "/bottom.png", GL_TEXTURE_CUBE_MAP_NEGATIVE_Y);
+    res = res && LoadImage(path + "/back.png", GL_TEXTURE_CUBE_MAP_POSITIVE_Z);
+    res = res && LoadImage(path + "/front.png", GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
 
-  if (res) {
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-  }
+    if (res) {
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    }
 
-  return res;
+    return res;
 }
 
 bool LoadProgram(const std::string &vertex, const std::string &fragment,
                  QOpenGLShaderProgram *program) {
-  std::string vertex_shader, fragment_shader;
-  bool res =
-      ReadFile(vertex, &vertex_shader) && ReadFile(fragment, &fragment_shader);
+    std::string vertex_shader, fragment_shader;
+    bool res =
+        ReadFile(vertex, &vertex_shader) && ReadFile(fragment, &fragment_shader);
 
-  if (res) {
-    program->addShaderFromSourceCode(QOpenGLShader::Vertex,
-                                     vertex_shader.c_str());
-    program->addShaderFromSourceCode(QOpenGLShader::Fragment,
-                                     fragment_shader.c_str());
-    program->bindAttributeLocation("vertex", kVertexAttributeIdx);
-    program->bindAttributeLocation("normal", kNormalAttributeIdx);
-    program->bindAttributeLocation("texCoord", kTexCoordAttributeIdx);
-    program->link();
-  }
+    if (res) {
+        program->addShaderFromSourceCode(QOpenGLShader::Vertex,
+                                         vertex_shader.c_str());
+        program->addShaderFromSourceCode(QOpenGLShader::Fragment,
+                                         fragment_shader.c_str());
+        program->bindAttributeLocation("vertex", kVertexAttributeIdx);
+        program->bindAttributeLocation("normal", kNormalAttributeIdx);
+        program->bindAttributeLocation("texCoord", kTexCoordAttributeIdx);
+        program->link();
+    }
 
-  return res;
+    return res;
 }
 
 }  // namespace
 
 GLWidget::GLWidget(QWidget *parent)
     : QOpenGLWidget(parent),
-      initialized_(false),
-      width_(0.0),
-      height_(0.0),
-      currentShader_(0),
-      fresnel_(0.05, 0.05, 0.05),
-      currentTexture_(0),
-      skyVisible_(true),
-      metalness_(0),
-      roughness_(0)
-        {
-  setFocusPolicy(Qt::StrongFocus);
+    initialized_(false),
+    width_(0.0),
+    height_(0.0),
+    currentShader_(0),
+    fresnel_(0.05, 0.05, 0.05),
+    currentTexture_(0),
+    skyVisible_(true),
+    metalness_(0),
+    roughness_(0)
+{
+    setFocusPolicy(Qt::StrongFocus);
 }
 
 GLWidget::~GLWidget() {
-  if (initialized_) {
-    glDeleteTextures(1, &specular_map_);
-    glDeleteTextures(1, &diffuse_map_);
-  }
+    if (initialized_) {
+        glDeleteTextures(1, &specular_map_);
+        glDeleteTextures(1, &diffuse_map_);
+    }
 }
 
 bool GLWidget::LoadModel(const QString &filename) {
@@ -228,13 +228,13 @@ bool GLWidget::LoadModel(const QString &filename) {
 
         skyVertices_ = {
             -1.0f, -1.0f,  1.0f,    // 0
-             1.0f, -1.0f,  1.0f,    // 1
+            1.0f, -1.0f,  1.0f,    // 1
             -1.0f, -1.0f, -1.0f,    // 2
-             1.0f, -1.0f, -1.0f,    // 3
+            1.0f, -1.0f, -1.0f,    // 3
             -1.0f,  1.0f,  1.0f,    // 4
-             1.0f,  1.0f,  1.0f,    // 5
+            1.0f,  1.0f,  1.0f,    // 5
             -1.0f,  1.0f, -1.0f,    // 6
-             1.0f,  1.0f, -1.0f     // 7
+            1.0f,  1.0f, -1.0f     // 7
         };
 
         skyFaces_ = {
@@ -285,44 +285,47 @@ bool GLWidget::LoadModel(const QString &filename) {
 
 bool GLWidget::LoadSpecularMap(const QString &dir) {
     glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
+
+    // First load the base mip level (level 0)
     bool res = LoadCubeMap(dir);
-    if (res) {
-        // Get the dimensions of the base level
-        GLint width, height;
-        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &width);
-        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &height);
-        qDebug() << "Base texture size:" << width << "x" << height;
-
-        // Make sure proper texture parameters are set
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 13); // Limit to 5 levels for testing
-        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-        // Generate mipmaps
-        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
-        // Verify mipmap generation by checking level 1 size
-        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 1, GL_TEXTURE_WIDTH, &width);
-        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 1, GL_TEXTURE_HEIGHT, &height);
-        qDebug() << "Mipmap level 1 size:" << width << "x" << height;
-
-        // Check if OpenGL reported any errors
-        GLenum err = glGetError();
-        if (err != GL_NO_ERROR) {
-            qDebug() << "OpenGL error during mipmap generation:" << err;
-        }
+    if (!res) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        return false;
     }
+
+    // Load the precomputed mip levels (1-4)
+    for (int mipLevel = 1; mipLevel < 5; mipLevel++) {
+        QString mipDir = dir + "/mip_" + QString::number(mipLevel);
+
+        // Load each face of the cubemap for this mip level
+        res = LoadImage((mipDir + "/right.png").toUtf8().constData(), GL_TEXTURE_CUBE_MAP_POSITIVE_X, mipLevel);
+        res = res && LoadImage((mipDir + "/left.png").toUtf8().constData(), GL_TEXTURE_CUBE_MAP_NEGATIVE_X, mipLevel);
+        res = res && LoadImage((mipDir + "/top.png").toUtf8().constData(), GL_TEXTURE_CUBE_MAP_POSITIVE_Y, mipLevel);
+        res = res && LoadImage((mipDir + "/bottom.png").toUtf8().constData(), GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, mipLevel);
+        res = res && LoadImage((mipDir + "/back.png").toUtf8().constData(), GL_TEXTURE_CUBE_MAP_POSITIVE_Z, mipLevel);
+        res = res && LoadImage((mipDir + "/front.png").toUtf8().constData(), GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, mipLevel);
+    }
+
+    // Set texture parameters for the mip chain
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 4);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     update();
     return res;
 }
 
 bool GLWidget::LoadDiffuseMap(const QString &dir) {
-  glBindTexture(GL_TEXTURE_CUBE_MAP, diffuse_map_);
-  bool res = LoadCubeMap(dir);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-  update();
-  return res;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, diffuse_map_);
+    bool res = LoadCubeMap(dir);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    update();
+    return res;
 }
 
 bool GLWidget::LoadColorMap(const QString &filename)
@@ -394,44 +397,44 @@ bool GLWidget::LoadMetalnessMap(const QString &filename)
 
 void GLWidget::initializeGL ()
 {
-  // Cal inicialitzar l'ús de les funcions d'OpenGL
-  initializeOpenGLFunctions();
+    // Cal inicialitzar l'ús de les funcions d'OpenGL
+    initializeOpenGLFunctions();
 
-  //initializing opengl state
-  glEnable(GL_NORMALIZE);
-  glDisable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    //initializing opengl state
+    glEnable(GL_NORMALIZE);
+    glDisable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-  //generating needed textures
-  glGenTextures(1, &specular_map_);
-  glGenTextures(1, &diffuse_map_);
-  glGenTextures(1, &color_map_);
-  glGenTextures(1, &roughness_map_);
-  glGenTextures(1, &metalness_map_);
+    //generating needed textures
+    glGenTextures(1, &specular_map_);
+    glGenTextures(1, &diffuse_map_);
+    glGenTextures(1, &color_map_);
+    glGenTextures(1, &roughness_map_);
+    glGenTextures(1, &metalness_map_);
 
-  //create shader programs
-  programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//phong
-  programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//texture mapping
-  programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//reflection
-  programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//simple pbs
-  programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//ibl pbs
-  programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//sky
+    //create shader programs
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//phong
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//texture mapping
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//reflection
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//simple pbs
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//ibl pbs
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//sky
 
-  //load vertex and fragment shader files
-  bool res =   LoadProgram(kShaderFiles[0][0],   kShaderFiles[0][1],    programs_[0].get());
-  res = res && LoadProgram(kShaderFiles[1][0],   kShaderFiles[1][1],    programs_[1].get());
-  res = res && LoadProgram(kShaderFiles[2][0],   kShaderFiles[2][1],    programs_[2].get());
-  res = res && LoadProgram(kShaderFiles[3][0],   kShaderFiles[3][1],    programs_[3].get());
-  res = res && LoadProgram(kShaderFiles[4][0],   kShaderFiles[4][1],    programs_[4].get());
-  res = res && LoadProgram(kShaderFiles[5][0],   kShaderFiles[5][1],    programs_[5].get());
+    //load vertex and fragment shader files
+    bool res =   LoadProgram(kShaderFiles[0][0],   kShaderFiles[0][1],    programs_[0].get());
+    res = res && LoadProgram(kShaderFiles[1][0],   kShaderFiles[1][1],    programs_[1].get());
+    res = res && LoadProgram(kShaderFiles[2][0],   kShaderFiles[2][1],    programs_[2].get());
+    res = res && LoadProgram(kShaderFiles[3][0],   kShaderFiles[3][1],    programs_[3].get());
+    res = res && LoadProgram(kShaderFiles[4][0],   kShaderFiles[4][1],    programs_[4].get());
+    res = res && LoadProgram(kShaderFiles[5][0],   kShaderFiles[5][1],    programs_[5].get());
 
-  if (!res) exit(0);
+    if (!res) exit(0);
 
-  LoadModel(".null"); //create sphere
+    LoadModel(".null"); //create sphere
 
-  initialized_ = true;
+    initialized_ = true;
 }
 
 void GLWidget::resizeGL (int w, int h)
@@ -445,54 +448,54 @@ void GLWidget::resizeGL (int w, int h)
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *event) {
-  if (event->button() == Qt::LeftButton) {
-    camera_.StartRotating(event->x(), event->y());
-  }
-  if (event->button() == Qt::RightButton) {
-    camera_.StartZooming(event->x(), event->y());
-  }
-  update();
+    if (event->button() == Qt::LeftButton) {
+        camera_.StartRotating(event->x(), event->y());
+    }
+    if (event->button() == Qt::RightButton) {
+        camera_.StartZooming(event->x(), event->y());
+    }
+    update();
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event) {
-  camera_.SetRotationX(event->y());
-  camera_.SetRotationY(event->x());
-  camera_.SafeZoom(event->y());
-  update();
+    camera_.SetRotationX(event->y());
+    camera_.SetRotationY(event->x());
+    camera_.SafeZoom(event->y());
+    update();
 }
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *event) {
-  if (event->button() == Qt::LeftButton) {
-    camera_.StopRotating(event->x(), event->y());
-  }
-  if (event->button() == Qt::RightButton) {
-    camera_.StopZooming(event->x(), event->y());
-  }
-  update();
+    if (event->button() == Qt::LeftButton) {
+        camera_.StopRotating(event->x(), event->y());
+    }
+    if (event->button() == Qt::RightButton) {
+        camera_.StopZooming(event->x(), event->y());
+    }
+    update();
 }
 
 void GLWidget::keyPressEvent(QKeyEvent *event) {
-  if (event->key() == Qt::Key_Up) camera_.Zoom(-1);
-  if (event->key() == Qt::Key_Down) camera_.Zoom(1);
+    if (event->key() == Qt::Key_Up) camera_.Zoom(-1);
+    if (event->key() == Qt::Key_Down) camera_.Zoom(1);
 
-  if (event->key() == Qt::Key_Left) camera_.Rotate(-1);
-  if (event->key() == Qt::Key_Right) camera_.Rotate(1);
+    if (event->key() == Qt::Key_Left) camera_.Rotate(-1);
+    if (event->key() == Qt::Key_Right) camera_.Rotate(1);
 
-  if (event->key() == Qt::Key_W) camera_.Zoom(-1);
-  if (event->key() == Qt::Key_S) camera_.Zoom(1);
+    if (event->key() == Qt::Key_W) camera_.Zoom(-1);
+    if (event->key() == Qt::Key_S) camera_.Zoom(1);
 
-  if (event->key() == Qt::Key_A) camera_.Rotate(-1);
-  if (event->key() == Qt::Key_D) camera_.Rotate(1);
+    if (event->key() == Qt::Key_A) camera_.Rotate(-1);
+    if (event->key() == Qt::Key_D) camera_.Rotate(1);
 
-  if (event->key() == Qt::Key_R) {
-      for(auto i = 0; i < programs_.size(); ++i) {
-          programs_[i].reset();
-          programs_[i] = std::make_unique<QOpenGLShaderProgram>();
-          LoadProgram(kShaderFiles[i][0], kShaderFiles[i][1], programs_[i].get());
-      }
-  }
+    if (event->key() == Qt::Key_R) {
+        for(auto i = 0; i < programs_.size(); ++i) {
+            programs_[i].reset();
+            programs_[i] = std::make_unique<QOpenGLShaderProgram>();
+            LoadProgram(kShaderFiles[i][0], kShaderFiles[i][1], programs_[i].get());
+        }
+    }
 
-  update();
+    update();
 }
 
 
@@ -514,16 +517,16 @@ void GLWidget::paintGL ()
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 3; ++j)
                 normal[i][j] = t[i][j];
-         normal = glm::transpose(glm::inverse(normal));
+        normal = glm::transpose(glm::inverse(normal));
 
         // Compute inverse of view matrix as a uniform
         glm::mat4x4 iview = glm::inverse(view);
 
         if (mesh_ != nullptr) {
             GLint projection_location, view_location, inv_view_location, model_location,
-            normal_matrix_location, specular_map_location, diffuse_map_location,
-            fresnel_location, color_map_location, roughness_map_location, metalness_map_location,
-            current_text_location, light_location, roughness_location, metalness_location, usePBStex_location, useIBLdirl_location;
+                normal_matrix_location, specular_map_location, diffuse_map_location,
+                fresnel_location, color_map_location, roughness_map_location, metalness_map_location,
+                current_text_location, light_location, roughness_location, metalness_location, usePBStex_location, useIBLdirl_location;
 
             //MESH-----------------------------------------------------------------------------------------
             //general shader setting

@@ -24,7 +24,6 @@ vec3 diffuse_part(vec3 color) {
 }
 
 float D(vec3 normal, vec3 h, float r){
-    // Prevent roughness from being exactly 0 to avoid numerical issues
     float r_clamped = max(r, 0.001);
     float s_roughness = r_clamped * r_clamped;
     float n_times_h = max(dot(normal,h),0.0);
@@ -94,7 +93,6 @@ void main (void) {
 
     Lo += (kD * diffuse_part(u_Color) + specular) * radiance * NdotL;
 
-    // Fix for ambient contribution: respect metalness in ambient term
     vec3 ambient = vec3(0.03);
     ambient *= mix(u_Color, F0, u_metalness);
 
