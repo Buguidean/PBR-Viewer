@@ -21,6 +21,7 @@ in vec3 LightPos;
 
 in vec3 Color;
 in vec3 nm_Normal;
+in vec3 worldNormal;
 in vec3 FragPos;
 in vec3 WorldPos;
 in vec2 TexCoord;
@@ -32,7 +33,7 @@ vec3 diffuse_part(vec3 color) {
 }
 
 float D(vec3 normal, vec3 h, float r) {
-    float r_clamped = max(r, 0.001);
+    float r_clamped = min(max(r, 0.01),0.99);
     float s_roughness = r_clamped * r_clamped;
     float n_times_h = max(dot(normal, h), 0.0);
     float s_n_times_h = n_times_h * n_times_h;
@@ -75,24 +76,19 @@ void main(void) {
         u_metalness = (texture(metalness_map, TexCoord)).r;
     }
 
-    // View direction in view space
-    vec3 v = normalize(-FragPos);
-
-    // View direction and normal in world space for IBL calculations
     vec3 viewPos = vec3(inv_view[3]);
-    vec3 worldNormal = normalize(mat3(transpose(inverse(inv_view))) * nm_Normal);
     vec3 V = normalize(viewPos - WorldPos);
 
-    // Calculate reflectance at normal incidence
     vec3 F0 = fresnel;
     F0 = mix(F0, u_Color, u_metalness);
 
-    // ===== DIRECT LIGHTING CONTRIBUTION =====
+    // DIRECT LIGHTING CONTRIBUTION
     vec3 Lo = vec3(0.0);
     if (direct_light == 1){
         // Light direction in view space
         vec3 l = normalize(LightPos - FragPos);
-        vec3 h = normalize(l + v);
+        vec3 v = normalize(-FragPos);
+        vec3 halfway = normalize(l+v);
 
         // Calculate attenuation
         float distance = length(LightPos - FragPos);
@@ -100,7 +96,7 @@ void main(void) {
         vec3 radiance = LightColor * attenuation;
 
         // BRDF terms for direct lighting
-        vec3 F_direct = F(v, h, F0);
+        vec3 F_direct = F(v, halfway, F0);
         vec3 kS_direct = F_direct;
         vec3 kD_direct = vec3(1.0) - kS_direct;
         kD_direct *= 1.0 - u_metalness;
@@ -108,7 +104,7 @@ void main(void) {
         float s_roughness_p1 = (u_roughness + 1.0) * (u_roughness + 1.0);
         float k_direct = s_roughness_p1 / 8.0;
 
-        vec3 numerator = D(nm_Normal, h, u_roughness) *
+        vec3 numerator = D(nm_Normal, halfway, u_roughness) *
                 G(nm_Normal, l, k_direct) *
                 G(nm_Normal, v, k_direct) *
                 F_direct;
@@ -120,41 +116,30 @@ void main(void) {
         Lo += (kD_direct * diffuse_part(u_Color) + specular) * radiance * NdotL;
     }
 
-    // ===== AMBIENT/IBL CONTRIBUTION =====
-    // Sample the diffuse irradiance map
+    // AMBIENT/IBL CONTRIBUTION
     vec3 irradiance = texture(diffuse_map, worldNormal).rgb;
-    // Apply gamma correction to the environment map (assuming it's in sRGB)
     irradiance = pow(irradiance, vec3(2.2));
 
-    // Sample the specular environment map
     vec3 R = reflect(-V, worldNormal);
-    // Use roughness to determine the mip level
     vec3 specularIrradiance = textureLod(specular_map, R, u_roughness * 4.0).rgb;
-    // Apply gamma correction to the environment map
     specularIrradiance = pow(specularIrradiance, vec3(2.2));
 
-    // Calculate Fresnel term for IBL
     float NdotV = max(dot(worldNormal, V), 0.0);
     vec3 F_ambient = FresnelSchlickRoughness(NdotV, F0, u_roughness);
 
-    // Calculate diffuse and specular factors for IBL
     vec3 kS_ambient = F_ambient;
     vec3 kD_ambient = vec3(1.0) - kS_ambient;
     kD_ambient *= 1.0 - u_metalness;
 
-    // Calculate the approximate geometry term for IBL
     float k_ibl = (u_roughness * u_roughness) / 2.0;
     float G_IBL = G(worldNormal, V, k_ibl); // Simplified G term for IBL
 
-    // Combine diffuse and specular IBL contributions
     vec3 diffuse_ibl = irradiance * diffuse_part(u_Color);
     vec3 specular_ibl = specularIrradiance * (F_ambient * G_IBL) / (4.0 * NdotV);
     vec3 ambient = kD_ambient * diffuse_ibl + specular_ibl;
 
-    // ===== COMBINE BOTH CONTRIBUTIONS =====
     vec3 FinalColor = Lo + ambient;
 
-    // Apply gamma correction for display
     vec3 gammaResult = pow(FinalColor, vec3(1.0/2.2));
     frag_color = vec4(gammaResult, 1.0);
 }

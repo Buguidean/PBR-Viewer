@@ -21,10 +21,8 @@ void main (void) {
     vec3 diffuse = diff * LightColor;
     float spec = pow(max(dot(obsDir, reflLightDir), 0.0), 32);
     vec3 specular = spec * LightColor;
-    // For color textures (usually in gamma space)
     vec3 texValue = pow(texture(current_texture, TexCoord).rgb, vec3(2.2));
 
-    // Note: Roughness, metalness, and normal maps should already be in linear space
     vec3 FinalColor = (ambient + diffuse + specular) * texValue;
     vec3 gammaResult = pow(FinalColor, vec3(1.0/2.2));
     frag_color = vec4(gammaResult, 1.0);

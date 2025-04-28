@@ -12,6 +12,7 @@ uniform vec3 light;
 
 out vec3 Color;
 out vec3 nm_Normal;
+out vec3 worldNormal;
 out vec3 LightColor;
 out vec3 LightPos;
 out vec3 FragPos;
@@ -21,6 +22,7 @@ out vec2 TexCoord;
 void main(void)  {
     Color = vec3(0.969,0.0,0.0);
     nm_Normal = normalize(normal_matrix * normal);
+    worldNormal = normal;
     FragPos = vec3(view * model * vec4(vert,1.0));
     LightColor = vec3(1.0,1.0,1.0);
     LightPos = vec3(view * vec4(light,1.0));

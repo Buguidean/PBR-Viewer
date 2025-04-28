@@ -14,6 +14,6 @@ out vec3 nm_Normal;
 
 void main(void)  {
     nm_Normal = normalize(normal_matrix * normal);
-    FragPos = vec3(model * view * vec4(vert,1.0));
+    FragPos = vec3(view * model * vec4(vert,1.0));
     gl_Position = projection * view * model * vec4(vert,1.0);
 }

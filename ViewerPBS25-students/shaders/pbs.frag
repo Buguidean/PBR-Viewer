@@ -24,7 +24,7 @@ vec3 diffuse_part(vec3 color) {
 }
 
 float D(vec3 normal, vec3 h, float r){
-    float r_clamped = max(r, 0.001);
+    float r_clamped = min(max(r, 0.01),0.99);
     float s_roughness = r_clamped * r_clamped;
     float n_times_h = max(dot(normal,h),0.0);
     float s_n_times_h = n_times_h * n_times_h;
