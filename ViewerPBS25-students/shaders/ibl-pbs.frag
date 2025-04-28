@@ -66,11 +66,14 @@ void main(void) {
     float u_roughness;
     float u_metalness;
 
-    if (pbstex_use == 0) {
+    if (pbstex_use == 0)
+    {
         u_Color = Color;
         u_roughness = roughness;
         u_metalness = metalness;
-    } else {
+    }
+    else
+    {
         u_Color = pow((texture(color_map, TexCoord)).rgb, vec3(2.2));
         u_roughness = (texture(roughness_map, TexCoord)).r;
         u_metalness = (texture(metalness_map, TexCoord)).r;

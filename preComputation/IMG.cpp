@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 #include <omp.h>
 
-// Include stb_image for image loading/saving
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -102,7 +101,7 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
                 float u = (2.0f * x / outputSize) - 1.0f;
                 float v = (2.0f * y / outputSize) - 1.0f;
                 
-                // Create a direction vector for this pixel
+                // (Direction is the normal)
                 glm::vec3 direction;
                 switch (faceIndex) {
                     case 0: direction = glm::normalize(glm::vec3( 1.0f, -v, -u)); break; // +X
@@ -114,9 +113,8 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
                 }
                 
                 int pixelIndex = (faceIndex * outputSize * outputSize) + (y * outputSize) + x;
-                glm::vec4 accumLocal(0.0f); // Local accumulator for each thread
+                glm::vec4 accumLocal(0.0f);
                 
-                // Determine number of samples for this pixel
                 int sampleId = 0;               
                 int remainingSamples = numSamples;
 
@@ -124,15 +122,11 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
                     glm::vec2 hammersleyPoint = ::hammersley2D(sampleId, numSamples);
                     glm::vec3 L = hammersleyToDirection(hammersleyPoint.x, hammersleyPoint.y, direction);
                     
-                    // Calculate NoL (Direction is the normal)
                     float NdotL = glm::dot(direction, L);
                     
-                    // If the sample contributes (is in the hemisphere)
                     if (NdotL > 0.0f) {                      
-                        // Sample the cubemap with bilinear filtering
                         glm::vec3 sampleColor = sampleCubemap(L);
                         
-                        // Accumulate result (rgb) and weight (a)
                         accumLocal.x += sampleColor.r * NdotL;
                         accumLocal.y += sampleColor.g * NdotL;
                         accumLocal.z += sampleColor.b * NdotL;
@@ -143,7 +137,7 @@ bool IMG::computeIrradianceMap(int outputSize, int numSamples) {
                     --remainingSamples;
                 }
 
-                // Normalize the accumulated result
+                // Normalize
                 if (accumLocal.w > 0.0f) {
                     accumLocal.x /= accumLocal.w;
                     accumLocal.y /= accumLocal.w;
@@ -238,7 +232,6 @@ bool IMG::computeSpecularIBL(int outputSize, int numSamples) {
                         accumLocal.z /= accumLocal.w;
                     }
                     
-                    // Use correct mipSize for offset calculation
                     int offset = (faceIndex * mipSize * mipSize + y * mipSize + x) * m_specularMap[mipLevel]->channels;
                     m_specularMap[mipLevel]->data[offset + 0] = accumLocal.x;
                     m_specularMap[mipLevel]->data[offset + 1] = accumLocal.y;
@@ -272,13 +265,11 @@ glm::vec3 IMG::sampleCubemapBilinear(int faceIndex, float u, float v) {
     int x2 = x1 + 1;
     int y2 = y1 + 1;
     
-    // Clamp to valid range
     x1 = std::max(0, std::min(m_inputCubemap->width - 1, x1));
     y1 = std::max(0, std::min(m_inputCubemap->height - 1, y1));
     x2 = std::max(0, std::min(m_inputCubemap->width - 1, x2));
     y2 = std::max(0, std::min(m_inputCubemap->height - 1, y2));
     
-    // Calculate fractional parts for interpolation
     float fx = sx - x1;
     float fy = sy - y1;
     
@@ -318,7 +309,6 @@ bool IMG::directionToFaceUV(const glm::vec3& direction, int* faceIndex, float* u
     bool isYPositive = direction.y > 0;
     bool isZPositive = direction.z > 0;
     
-    // Use the largest component to determine the face
     if (absX >= absY && absX >= absZ) {
         *faceIndex = isXPositive ? 0 : 1; // +X or -X
         *u = isXPositive ? -direction.z : direction.z;
@@ -348,7 +338,6 @@ bool IMG::saveIrradianceMap(const std::string& outputPath) {
         return false;
     }
     
-    // For simplicity, we'll save each face as a separate file
     const std::string faceNames[6] = {
         "right", "left", "top", "bottom", "back", "front"
     };
@@ -390,7 +379,6 @@ bool IMG::saveSpecularIBL(const std::string& outputPath){
         return false;
     }
     
-    // For simplicity, we'll save each face as a separate file
     const std::string faceNames[6] = {
         "right", "left", "top", "bottom", "back", "front"
     };

@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
     std::string outputPath = argv[3];
     
     if (command == "diffuse") {
-        // Diffuse irradiance map generation
         if (argc < 6) {
             printUsage(argv[0]);
             return 1;
@@ -65,7 +64,6 @@ int main(int argc, char** argv) {
     }
     
     else if (command == "specular") {
-        // Specular environment map generation
         if (argc < 6) {
             printUsage(argv[0]);
             return 1;
