@@ -1,0 +1,14 @@
+For compiling the QT project, there is a .pro file that can be opened with QTCreator and compiled from there.
+
+For the code used for precomputing the cubemaps for the IBL diffuse and specular terms, there is a folder called 
+"preComputation" and inside there is a CMakeLists.txt file. In that folder you just need to create a "build" folder and then:
+
+cd build
+cmake ..
+make
+
+And an executable will be compiled. If you execute it on the terminal, it will print the usage. The dependencies are 
+CMake, GLM, OpenMP, and stb_image header files that can be downloaded with the "deps.sh" script provided. They are 
+expected to be in a "libs" folder on the root of "preComputation". The diffuse and specular parts obtained from the
+precomputations must be placed in the same folder hierarchy as the ones already computed if new ones want to be tested.
+
