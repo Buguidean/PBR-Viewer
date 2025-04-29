@@ -88,12 +88,10 @@ void main(void) {
     // DIRECT LIGHTING CONTRIBUTION
     vec3 Lo = vec3(0.0);
     if (direct_light == 1){
-        // Light direction in view space
         vec3 l = normalize(LightPos - FragPos);
         vec3 v = normalize(-FragPos);
         vec3 halfway = normalize(l+v);
 
-        // Calculate attenuation
         float distance = length(LightPos - FragPos);
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = LightColor * attenuation;

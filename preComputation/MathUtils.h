@@ -42,7 +42,7 @@ inline glm::vec3 importanceSampleGGX(float u, float v, const glm::vec3& normal, 
     float s_roughness = roughness * roughness;
     float phi = 2.0f * glm::pi<float>() * u;
 
-    // Roughness-weighted distribution
+    // Roughness-weighted distribution (Extracted from learnopengl)
     float cosTheta = sqrt((1.0 - v) / (1.0 + (s_roughness * s_roughness - 1.0) * v));
     float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
 

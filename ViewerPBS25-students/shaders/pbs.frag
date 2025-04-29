@@ -56,6 +56,7 @@ void main (void) {
     vec3 v = normalize(-FragPos);
     vec3 halfway = normalize(l+v);
 
+    // Take into account light attenuation
     float distance    = length(LightPos - FragPos);
     float attenuation = 1.0 / (distance * distance);
     vec3  radiance    = LightColor * attenuation;
@@ -93,6 +94,7 @@ void main (void) {
 
     Lo += (kD * diffuse_part(u_Color) + specular) * radiance * NdotL;
 
+    // Constant ambient term similar to Phong
     vec3 ambient = vec3(0.03);
     ambient *= mix(u_Color, F0, u_metalness);
 
