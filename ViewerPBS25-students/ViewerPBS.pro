@@ -58,6 +58,10 @@ DISTFILES += \
     shaders/phong.frag \
     shaders/phong.vert \
     shaders/texMap.frag \
-    shaders/texMap.vert
+    shaders/texMap.vert \
+    shaders/ao-vis.vert \
+    shaders/ao-vis.frag \
+    shaders/ao-texWrite.vert \
+    shaders/ao-texWrite.frag
 
 

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>827</width>
-    <height>701</height>
+    <height>916</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -78,7 +78,7 @@
          </size>
         </property>
         <property name="title">
-         <string>Options</string>
+         <string>General - Options</string>
         </property>
         <widget class="QRadioButton" name="radio_reflection">
          <property name="geometry">
@@ -276,7 +276,7 @@
          <property name="geometry">
           <rect>
            <x>40</x>
-           <y>420</y>
+           <y>400</y>
            <width>92</width>
            <height>23</height>
           </rect>
@@ -350,7 +350,7 @@
          <property name="geometry">
           <rect>
            <x>40</x>
-           <y>440</y>
+           <y>420</y>
            <width>119</width>
            <height>22</height>
           </rect>
@@ -363,13 +363,77 @@
          <property name="geometry">
           <rect>
            <x>40</x>
-           <y>460</y>
+           <y>440</y>
            <width>111</width>
            <height>22</height>
           </rect>
          </property>
          <property name="text">
           <string>IBLDirect</string>
+         </property>
+        </widget>
+        <widget class="Line" name="line">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>470</y>
+           <width>181</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_6">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>490</y>
+           <width>151</width>
+           <height>16</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>AO - Options</string>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="comboBox">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>550</y>
+           <width>121</width>
+           <height>24</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>Albedo</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Normals</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Depth</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QCheckBox" name="check_debug">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>520</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>DebugView</string>
          </property>
         </widget>
        </widget>
@@ -584,75 +648,12 @@
     <slot>SetMetalness(double)</slot>
     <slot>SetPBSTexture(bool)</slot>
     <slot>SetIBLDirectLight(bool)</slot>
+    <slot>SetDebugView(bool)</slot>
    </slots>
   </customwidget>
  </customwidgets>
  <resources/>
  <connections>
-  <connection>
-   <sender>glwidget</sender>
-   <signal>SetFaces(QString)</signal>
-   <receiver>Label_NumFaces</receiver>
-   <slot>setText(QString)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>569</x>
-     <y>566</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>796</x>
-     <y>694</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>glwidget</sender>
-   <signal>SetVertices(QString)</signal>
-   <receiver>Label_NumVertices</receiver>
-   <slot>setText(QString)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>593</x>
-     <y>587</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>796</x>
-     <y>714</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>glwidget</sender>
-   <signal>SetFramerate(QString)</signal>
-   <receiver>Label_NumFramerate</receiver>
-   <slot>setText(QString)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>607</x>
-     <y>623</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>760</x>
-     <y>744</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>radio_reflection</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetReflection(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>752</x>
-     <y>192</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>434</x>
-     <y>75</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>radio_iblpbs</sender>
    <signal>clicked(bool)</signal>
@@ -666,70 +667,6 @@
     <hint type="destinationlabel">
      <x>539</x>
      <y>106</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>spin_f0b</sender>
-   <signal>valueChanged(double)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetFresnelB(double)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>764</x>
-     <y>411</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>520</x>
-     <y>207</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>spin_f0g</sender>
-   <signal>valueChanged(double)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetFresnelG(double)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>754</x>
-     <y>371</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>559</x>
-     <y>165</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>spin_f0r</sender>
-   <signal>valueChanged(double)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetFresnelR(double)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>754</x>
-     <y>331</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>547</x>
-     <y>127</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>radio_phong</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetPhong(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>691</x>
-     <y>73</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>308</x>
-     <y>330</y>
     </hint>
    </hints>
   </connection>
@@ -750,18 +687,18 @@
    </hints>
   </connection>
   <connection>
-   <sender>combo_tex</sender>
-   <signal>currentIndexChanged(int)</signal>
+   <sender>check_tpbs</sender>
+   <signal>clicked(bool)</signal>
    <receiver>glwidget</receiver>
-   <slot>SetCurrentTexture(int)</slot>
+   <slot>SetPBSTexture(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>672</x>
-     <y>147</y>
+     <x>774</x>
+     <y>472</y>
     </hint>
     <hint type="destinationlabel">
-     <x>330</x>
-     <y>265</y>
+     <x>308</x>
+     <y>430</y>
     </hint>
    </hints>
   </connection>
@@ -774,38 +711,6 @@
     <hint type="sourcelabel">
      <x>747</x>
      <y>213</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>308</x>
-     <y>330</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>check_sky</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetSkyVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>701</x>
-     <y>463</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>308</x>
-     <y>330</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>dspin_metal</sender>
-   <signal>valueChanged(double)</signal>
-   <receiver>glwidget</receiver>
-   <slot>SetMetalness(double)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>746</x>
-     <y>256</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
@@ -830,18 +735,66 @@
    </hints>
   </connection>
   <connection>
-   <sender>check_tpbs</sender>
-   <signal>clicked(bool)</signal>
+   <sender>combo_tex</sender>
+   <signal>currentIndexChanged(int)</signal>
    <receiver>glwidget</receiver>
-   <slot>SetPBSTexture(bool)</slot>
+   <slot>SetCurrentTexture(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>715</x>
-     <y>481</y>
+     <x>672</x>
+     <y>147</y>
     </hint>
     <hint type="destinationlabel">
-     <x>308</x>
-     <y>430</y>
+     <x>330</x>
+     <y>265</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spin_f0b</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetFresnelB(double)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>764</x>
+     <y>411</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>520</x>
+     <y>207</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spin_f0r</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetFresnelR(double)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>754</x>
+     <y>331</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>547</x>
+     <y>127</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radio_reflection</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetReflection(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>752</x>
+     <y>192</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>434</x>
+     <y>75</y>
     </hint>
    </hints>
   </connection>
@@ -852,12 +805,140 @@
    <slot>SetIBLDirectLight(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>711</x>
-     <y>501</y>
+     <x>766</x>
+     <y>492</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
      <y>430</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>check_sky</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetSkyVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>747</x>
+     <y>453</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>330</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radio_phong</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetPhong(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>691</x>
+     <y>73</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>330</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>dspin_metal</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetMetalness(double)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>746</x>
+     <y>256</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>330</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spin_f0g</sender>
+   <signal>valueChanged(double)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetFresnelG(double)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>754</x>
+     <y>371</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>559</x>
+     <y>165</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>glwidget</sender>
+   <signal>SetFramerate(QString)</signal>
+   <receiver>Label_NumFramerate</receiver>
+   <slot>setText(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>607</x>
+     <y>623</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>796</x>
+     <y>902</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>glwidget</sender>
+   <signal>SetFaces(QString)</signal>
+   <receiver>Label_NumFaces</receiver>
+   <slot>setText(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>569</x>
+     <y>566</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>796</x>
+     <y>852</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>glwidget</sender>
+   <signal>SetVertices(QString)</signal>
+   <receiver>Label_NumVertices</receiver>
+   <slot>setText(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>593</x>
+     <y>587</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>796</x>
+     <y>872</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>check_debug</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetDebugView(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>691</x>
+     <y>561</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>468</y>
     </hint>
    </hints>
   </connection>

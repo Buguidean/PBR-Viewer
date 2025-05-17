@@ -138,6 +138,21 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   GLuint metalness_map_;
 
   /**
+   * @brief def_albedo_ Texture for storing the albedo (AO).
+   */
+  GLuint def_albedo_;
+
+  /**
+   * @brief def_normal_ Texture for storing the normals (AO).
+   */
+  GLuint def_normal_;
+
+  /**
+   * @brief def_depth_ Texture for storing the depths (AO).
+   */
+  GLuint def_depth_;
+
+  /**
    * @brief initialized_ Whether the widget has finished initializations.
    */
   bool initialized_;
@@ -173,6 +188,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   bool skyVisible_;
 
   /**
+   * @brief debugView_ Enables use of debugView
+   */
+  bool debugView_;
+
+  /**
    * @brief usePBStex_ Enables use of textures for PBS
    */
   int usePBStex_;
@@ -191,6 +211,8 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief roughness_ Indicates the general roughness properties of the model
    */
   float roughness_;
+
+  GLuint def_FrameBuffer;
 
   GLuint VAO;
   GLuint VBO_v;
@@ -254,6 +276,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetSkyVisible enables/disables the skybox
    */
   void SetSkyVisible(bool set);
+
+  /**
+   * @brief SetDebugView enables/disables the debug view for AO
+   */
+  void SetDebugView(bool set);
 
   /**
    * @brief SetPBSTexture enables/disables the use of textures for PBS
