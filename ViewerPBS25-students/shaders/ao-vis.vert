@@ -1,17 +1,14 @@
 #version 330
 
 layout (location = 0) in vec3 vert;
-layout (location = 1) in vec3 normal;
-layout (location = 2) in vec2 texCoord;
 
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+out vec2 TexCoord; // Changed to vec2
 
-out vec3 FragPos;
-out vec3 TexCoord;
+void main(void) {
+    // Map the vertex positions directly to screen coordinates
+    gl_Position = vec4(vert, 1.0);
 
-void main(void)  {
-    FragPos = vert;
-    gl_Position = vec4(vert,1.0);
+    // Generate texture coordinates from vertex positions
+    // This maps [-1,1] to [0,1] for texture coordinates
+    TexCoord = vert.xy * 0.5 + 0.5;
 }

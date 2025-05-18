@@ -2,9 +2,7 @@
 
 layout (location = 0) out vec4 defColor;
 layout (location = 1) out vec4 defNormal;
-layout (location = 2) out vec4 defDepth;
 
-in vec3 FragPos;
 in vec3 nm_Normal;
 in vec3 Color;
 

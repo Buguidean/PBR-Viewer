@@ -106,8 +106,8 @@ bool LoadProgram(const std::string &vertex, const std::string &fragment,
 GLWidget::GLWidget(QWidget *parent)
     : QOpenGLWidget(parent),
     initialized_(false),
-    width_(0.0),
-    height_(0.0),
+    width_(20.0),
+    height_(20.0),
     currentShader_(0),
     fresnel_(0.05, 0.05, 0.05),
     currentTexture_(0),
@@ -460,28 +460,36 @@ void GLWidget::initializeGL ()
     glGenTextures(1, &def_normal_);
     glGenTextures(1, &def_depth_);
 
-    glBindFramebuffer(GL_FRAMEBUFFER,def_FrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, def_FrameBuffer);
 
     glBindTexture(GL_TEXTURE_2D, def_albedo_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, def_albedo_ , 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, def_albedo_, 0);
 
     glBindTexture(GL_TEXTURE_2D, def_normal_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA16F, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_ , 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
 
     glBindTexture(GL_TEXTURE_2D, def_depth_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA16F, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_ , 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
 
-    unsigned int renderTargets[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_DEPTH_ATTACHMENT};
-    glDrawBuffers(3,renderTargets);
+    // Define which color attachments to draw to
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, attachments);
+
+    // Check framebuffer completeness
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        qDebug() << "Error: Framebuffer is not complete! Status: " << status;
+    }
+
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -512,7 +520,7 @@ void GLWidget::initializeGL ()
     initialized_ = true;
 }
 
-void GLWidget::resizeGL (int w, int h)
+void GLWidget::resizeGL(int w, int h)
 {
     if (h == 0) h = 1;
     width_ = w;
@@ -520,6 +528,37 @@ void GLWidget::resizeGL (int w, int h)
 
     camera_.SetViewport(0, 0, w, h);
     camera_.SetProjection(kFieldOfView, kZNear, kZFar);
+
+    // Add this code to resize framebuffer textures
+    if (initialized_) {
+        // Resize framebuffer textures for AO debug view
+        glBindFramebuffer(GL_FRAMEBUFFER, def_FrameBuffer);
+
+        // Resize albedo texture
+        glBindTexture(GL_TEXTURE_2D, def_albedo_);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, def_albedo_, 0);
+
+        // Resize normal texture
+        glBindTexture(GL_TEXTURE_2D, def_normal_);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA, GL_FLOAT, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
+
+        // Resize depth texture - FIXED FORMAT
+        glBindTexture(GL_TEXTURE_2D, def_depth_);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
+
+        // Check framebuffer completeness
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            qDebug() << "Error: Framebuffer is not complete after resize! Status: " << status;
+        }
+
+        // Unbind
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *event) {
@@ -701,7 +740,6 @@ void GLWidget::paintGL ()
                 // Second pass ----------------------------------------------------------------------------------------
                 glBindFramebuffer(GL_FRAMEBUFFER,0);
                 programs_[programs_.size()-2]->bind();
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 projection_location     = programs_[programs_.size()-2]->uniformLocation("projection");
                 view_location           = programs_[programs_.size()-2]->uniformLocation("view");
@@ -727,9 +765,9 @@ void GLWidget::paintGL ()
                 glBindTexture(GL_TEXTURE_2D, def_depth_);
                 glUniform1i(def_depth_location, 2);
 
-                glUniform1i(current_text_location, ao_currentTexture_);
+                glUniform1i(current_text_location, currentTexture_);
 
-                glBindVertexArray(VAO);
+                glBindVertexArray(VAO_quad);
                 glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
                 glBindVertexArray(0);
             }
