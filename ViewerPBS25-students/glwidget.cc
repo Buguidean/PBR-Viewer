@@ -111,6 +111,7 @@ GLWidget::GLWidget(QWidget *parent)
     currentShader_(0),
     fresnel_(0.05, 0.05, 0.05),
     currentTexture_(0),
+    ao_currentTexture_(0),
     skyVisible_(true),
     debugView_(false),
     metalness_(0),
@@ -172,9 +173,14 @@ bool GLWidget::LoadModel(const QString &filename) {
             glDeleteBuffers(1, &VBO_i_sky);
             glDeleteVertexArrays(1, &VAO_sky);
 
+            glDeleteBuffers(1, &VBO_v_quad);
+            glDeleteBuffers(1, &VBO_i_quad);
+            glDeleteVertexArrays(1, &VAO_quad);
+
             // Reset buffer IDs
             VAO = VBO_v = VBO_n = VBO_tc = VBO_i = 0;
             VAO_sky = VBO_v_sky = VBO_i_sky = 0;
+            VAO_quad = VBO_v_quad = VBO_i_quad = 0;
 
             // Force synchronization
             glFinish();
@@ -268,6 +274,37 @@ bool GLWidget::LoadModel(const QString &filename) {
         // Faces VBO data initialization
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i_sky);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(int)*skyFaces_.size(),&skyFaces_[0],GL_STATIC_DRAW);
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // Add screen wide quad
+        quadVertices_ = {
+            -1.0f, -1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            -1.0, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f
+        };
+
+        quadFaces_ = {
+            0,1,2,
+            0,3,1
+        };
+
+        glGenVertexArrays(1,&VAO_quad);
+        glGenBuffers(1,&VBO_v_quad);
+        glGenBuffers(1,&VBO_i_quad);
+
+        glBindVertexArray(VAO_quad);
+        // Vertices VBO data initialization
+        glBindBuffer(GL_ARRAY_BUFFER,VBO_v_quad);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(float)*quadVertices_.size(),&quadVertices_[0],GL_STATIC_DRAW);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,0,0);
+        glEnableVertexAttribArray(0);
+        // Faces VBO data initialization
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,VBO_i_quad);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(int)*quadFaces_.size(),&quadFaces_[0],GL_STATIC_DRAW);
 
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -638,6 +675,9 @@ void GLWidget::paintGL ()
             }
 
             else { // Debug view code for AO
+                GLint def_albedo_location, def_normal_location, def_depth_location;
+
+                // First pass -------------------------------------------------------------------------------------------
                 programs_[programs_.size()-1]->bind();
                 glBindFramebuffer(GL_FRAMEBUFFER,def_FrameBuffer);
 
@@ -658,9 +698,19 @@ void GLWidget::paintGL ()
                 glDrawElements(GL_TRIANGLES,mesh_->faces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
                 glBindVertexArray(0);
 
+                // Second pass ----------------------------------------------------------------------------------------
                 glBindFramebuffer(GL_FRAMEBUFFER,0);
                 programs_[programs_.size()-2]->bind();
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                projection_location     = programs_[programs_.size()-2]->uniformLocation("projection");
+                view_location           = programs_[programs_.size()-2]->uniformLocation("view");
+                model_location          = programs_[programs_.size()-2]->uniformLocation("model");
+                normal_matrix_location  = programs_[programs_.size()-2]->uniformLocation("normal_matrix");
+                def_albedo_location     = programs_[programs_.size()-2]->uniformLocation("def_albedo");
+                def_normal_location     = programs_[programs_.size()-2]->uniformLocation("def_normal");
+                def_depth_location      = programs_[programs_.size()-2]->uniformLocation("def_depth");
+                current_text_location   = programs_[programs_.size()-2]->uniformLocation("current_texture");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -668,8 +718,20 @@ void GLWidget::paintGL ()
                 glUniformMatrix3fv(normal_matrix_location, 1, GL_FALSE, &normal[0][0]);
 
                 glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
-                // Continue code ...
+                glBindTexture(GL_TEXTURE_2D, def_albedo_);
+                glUniform1i(def_albedo_location, 0);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, def_normal_);
+                glUniform1i(def_normal_location, 1);
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, def_depth_);
+                glUniform1i(def_depth_location, 2);
+
+                glUniform1i(current_text_location, ao_currentTexture_);
+
+                glBindVertexArray(VAO);
+                glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                glBindVertexArray(0);
             }
 
             //SKY-----------------------------------------------------------------------------------------
@@ -748,6 +810,12 @@ void GLWidget::SetFresnelG(double g) {
 void GLWidget::SetCurrentTexture(int i)
 {
     currentTexture_ = i;
+    update();
+}
+
+void GLWidget::SetCurrentTextureAO(int i)
+{
+    ao_currentTexture_ = i;
     update();
 }
 

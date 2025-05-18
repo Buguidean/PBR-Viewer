@@ -9,10 +9,9 @@ uniform mat4 view;
 uniform mat4 projection;
 
 out vec3 FragPos;
-out vec2 TexCoord;
+out vec3 TexCoord;
 
 void main(void)  {
-    FragPos = vec3(view * model * vec4(vert,1.0));
-    TexCoord = texCoord;
-    gl_Position = projection * view * model * vec4(vert,1.0);
+    FragPos = vert;
+    gl_Position = vec4(vert,1.0);
 }

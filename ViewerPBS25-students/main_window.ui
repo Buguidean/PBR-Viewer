@@ -398,7 +398,7 @@
           <string>AO - Options</string>
          </property>
         </widget>
-        <widget class="QComboBox" name="comboBox">
+        <widget class="QComboBox" name="combo_aoTex">
          <property name="geometry">
           <rect>
            <x>20</x>
@@ -649,6 +649,7 @@
     <slot>SetPBSTexture(bool)</slot>
     <slot>SetIBLDirectLight(bool)</slot>
     <slot>SetDebugView(bool)</slot>
+    <slot>SetCurrentTextureAO(int)</slot>
    </slots>
   </customwidget>
  </customwidgets>
@@ -935,6 +936,22 @@
     <hint type="sourcelabel">
      <x>691</x>
      <y>561</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>468</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>combo_aoTex</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetCurrentTextureAO(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>696</x>
+     <y>592</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>
