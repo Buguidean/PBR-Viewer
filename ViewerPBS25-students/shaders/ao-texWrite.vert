@@ -13,7 +13,7 @@ out vec3 nm_Normal;
 out vec3 Color;
 
 void main(void)  {
-    Color = vec3(1.0,0.0,0.0);
+    Color = vec3(0.0,0.0,1.0);
     nm_Normal = normalize(normal_matrix * normal);
     gl_Position = projection * view * model * vec4(vert,1.0);
 }

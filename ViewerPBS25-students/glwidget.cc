@@ -106,8 +106,8 @@ bool LoadProgram(const std::string &vertex, const std::string &fragment,
 GLWidget::GLWidget(QWidget *parent)
     : QOpenGLWidget(parent),
     initialized_(false),
-    width_(20.0),
-    height_(20.0),
+    width_(0.0),
+    height_(0.0),
     currentShader_(0),
     fresnel_(0.05, 0.05, 0.05),
     currentTexture_(0),
@@ -439,6 +439,9 @@ void GLWidget::initializeGL ()
 {
     // Cal inicialitzar l'ús de les funcions d'OpenGL
     initializeOpenGLFunctions();
+    // Get current widget dimensions
+    width_ = this->width();
+    height_ = this->height();
 
     //initializing opengl state
     glEnable(GL_NORMALIZE);
@@ -469,13 +472,13 @@ void GLWidget::initializeGL ()
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, def_albedo_, 0);
 
     glBindTexture(GL_TEXTURE_2D, def_normal_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA16F, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
 
     glBindTexture(GL_TEXTURE_2D, def_depth_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT24, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
@@ -529,9 +532,8 @@ void GLWidget::resizeGL(int w, int h)
     camera_.SetViewport(0, 0, w, h);
     camera_.SetProjection(kFieldOfView, kZNear, kZFar);
 
-    // Add this code to resize framebuffer textures
+    // Resize AO textures
     if (initialized_) {
-        // Resize framebuffer textures for AO debug view
         glBindFramebuffer(GL_FRAMEBUFFER, def_FrameBuffer);
 
         // Resize albedo texture
@@ -544,18 +546,11 @@ void GLWidget::resizeGL(int w, int h)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA, GL_FLOAT, NULL);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
 
-        // Resize depth texture - FIXED FORMAT
+        // Resize depth texture
         glBindTexture(GL_TEXTURE_2D, def_depth_);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
 
-        // Check framebuffer completeness
-        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        if (status != GL_FRAMEBUFFER_COMPLETE) {
-            qDebug() << "Error: Framebuffer is not complete after resize! Status: " << status;
-        }
-
-        // Unbind
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -714,7 +709,8 @@ void GLWidget::paintGL ()
             }
 
             else { // Debug view code for AO
-                GLint def_albedo_location, def_normal_location, def_depth_location;
+                GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location;
+                glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
                 // First pass -------------------------------------------------------------------------------------------
                 programs_[programs_.size()-1]->bind();
@@ -738,7 +734,9 @@ void GLWidget::paintGL ()
                 glBindVertexArray(0);
 
                 // Second pass ----------------------------------------------------------------------------------------
-                glBindFramebuffer(GL_FRAMEBUFFER,0);
+                glBindFramebuffer(GL_FRAMEBUFFER,defaultFramebuffer);
+
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 programs_[programs_.size()-2]->bind();
 
                 projection_location     = programs_[programs_.size()-2]->uniformLocation("projection");
@@ -749,6 +747,8 @@ void GLWidget::paintGL ()
                 def_normal_location     = programs_[programs_.size()-2]->uniformLocation("def_normal");
                 def_depth_location      = programs_[programs_.size()-2]->uniformLocation("def_depth");
                 current_text_location   = programs_[programs_.size()-2]->uniformLocation("current_texture");
+                near_location           = programs_[programs_.size()-2]->uniformLocation("near");
+                far_location            = programs_[programs_.size()-2]->uniformLocation("far");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -765,7 +765,9 @@ void GLWidget::paintGL ()
                 glBindTexture(GL_TEXTURE_2D, def_depth_);
                 glUniform1i(def_depth_location, 2);
 
-                glUniform1i(current_text_location, currentTexture_);
+                glUniform1i(current_text_location, ao_currentTexture_);
+                glUniform1f(near_location, (float)kZNear);
+                glUniform1f(far_location, (float)kZFar);
 
                 glBindVertexArray(VAO_quad);
                 glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
