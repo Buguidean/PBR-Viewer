@@ -26,7 +26,9 @@ const std::vector<std::vector<std::string>> kShaderFiles = {
     {"../shaders/pbs.vert",          "../shaders/pbs.frag"},
     {"../shaders/ibl-pbs.vert",      "../shaders/ibl-pbs.frag"},
     {"../shaders/sky.vert",          "../shaders/sky.frag"},
-    {"../shaders/ao-vis.vert",       "../shaders/ao-vis.frag"},
+    {"../shaders/ao-albedo.vert",    "../shaders/ao-albedo.frag"},
+    {"../shaders/ao-normal.vert",    "../shaders/ao-normal.frag"},
+    {"../shaders/ao-depth.vert",     "../shaders/ao-depth.frag"},
     {"../shaders/ao-texWrite.vert",  "../shaders/ao-texWrite.frag"}};
 
 const int kVertexAttributeIdx = 0;
@@ -503,7 +505,9 @@ void GLWidget::initializeGL ()
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//simple pbs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//ibl pbs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//sky
-    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugvis
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugAlbedo
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugNormals
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugDepth
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugwriteTex
 
     //load vertex and fragment shader files
@@ -515,6 +519,8 @@ void GLWidget::initializeGL ()
     res = res && LoadProgram(kShaderFiles[5][0],   kShaderFiles[5][1],    programs_[5].get());
     res = res && LoadProgram(kShaderFiles[6][0],   kShaderFiles[6][1],    programs_[6].get());
     res = res && LoadProgram(kShaderFiles[7][0],   kShaderFiles[7][1],    programs_[7].get());
+    res = res && LoadProgram(kShaderFiles[8][0],   kShaderFiles[8][1],    programs_[8].get());
+    res = res && LoadProgram(kShaderFiles[9][0],   kShaderFiles[9][1],    programs_[9].get());
 
     if (!res) exit(0);
 
@@ -737,18 +743,31 @@ void GLWidget::paintGL ()
                 glBindFramebuffer(GL_FRAMEBUFFER,defaultFramebuffer);
 
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                programs_[programs_.size()-2]->bind();
 
-                projection_location     = programs_[programs_.size()-2]->uniformLocation("projection");
-                view_location           = programs_[programs_.size()-2]->uniformLocation("view");
-                model_location          = programs_[programs_.size()-2]->uniformLocation("model");
-                normal_matrix_location  = programs_[programs_.size()-2]->uniformLocation("normal_matrix");
-                def_albedo_location     = programs_[programs_.size()-2]->uniformLocation("def_albedo");
-                def_normal_location     = programs_[programs_.size()-2]->uniformLocation("def_normal");
-                def_depth_location      = programs_[programs_.size()-2]->uniformLocation("def_depth");
-                current_text_location   = programs_[programs_.size()-2]->uniformLocation("current_texture");
-                near_location           = programs_[programs_.size()-2]->uniformLocation("near");
-                far_location            = programs_[programs_.size()-2]->uniformLocation("far");
+                int pId = 4;
+                // Select between Albedo,Normal,Depth
+                if (ao_currentTexture_ == 0){
+                    pId = 4;
+                }
+                else if (ao_currentTexture_ == 1){
+                    pId = 3;
+                }
+                else if (ao_currentTexture_ == 2){
+                    pId = 2;
+                }
+
+                programs_[programs_.size()-pId]->bind();
+
+                projection_location     = programs_[programs_.size()-pId]->uniformLocation("projection");
+                view_location           = programs_[programs_.size()-pId]->uniformLocation("view");
+                model_location          = programs_[programs_.size()-pId]->uniformLocation("model");
+                normal_matrix_location  = programs_[programs_.size()-pId]->uniformLocation("normal_matrix");
+                def_albedo_location     = programs_[programs_.size()-pId]->uniformLocation("def_albedo");
+                def_normal_location     = programs_[programs_.size()-pId]->uniformLocation("def_normal");
+                def_depth_location      = programs_[programs_.size()-pId]->uniformLocation("def_depth");
+                current_text_location   = programs_[programs_.size()-pId]->uniformLocation("current_texture");
+                near_location           = programs_[programs_.size()-pId]->uniformLocation("near");
+                far_location            = programs_[programs_.size()-pId]->uniformLocation("far");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -764,8 +783,8 @@ void GLWidget::paintGL ()
                 glActiveTexture(GL_TEXTURE2);
                 glBindTexture(GL_TEXTURE_2D, def_depth_);
                 glUniform1i(def_depth_location, 2);
-
                 glUniform1i(current_text_location, ao_currentTexture_);
+
                 glUniform1f(near_location, (float)kZNear);
                 glUniform1f(far_location, (float)kZFar);
 
@@ -781,13 +800,13 @@ void GLWidget::paintGL ()
                 // Ignore camera translation
                 view = glm::mat4(glm::mat3(camera_.SetView()));
 
-                programs_[programs_.size()-3]->bind();
+                programs_[programs_.size()-5]->bind();
 
-                projection_location     = programs_[programs_.size()-3]->uniformLocation("projection");
-                view_location           = programs_[programs_.size()-3]->uniformLocation("view");
-                model_location          = programs_[programs_.size()-3]->uniformLocation("model");
-                normal_matrix_location  = programs_[programs_.size()-3]->uniformLocation("normal_matrix");
-                specular_map_location   = programs_[programs_.size()-3]->uniformLocation("specular_map");
+                projection_location     = programs_[programs_.size()-5]->uniformLocation("projection");
+                view_location           = programs_[programs_.size()-5]->uniformLocation("view");
+                model_location          = programs_[programs_.size()-5]->uniformLocation("model");
+                normal_matrix_location  = programs_[programs_.size()-5]->uniformLocation("normal_matrix");
+                specular_map_location   = programs_[programs_.size()-5]->uniformLocation("specular_map");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
