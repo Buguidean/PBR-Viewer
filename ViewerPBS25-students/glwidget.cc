@@ -12,6 +12,7 @@
 #include "./triangle_mesh.h"
 
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/constants.hpp>
 
 namespace {
 
@@ -26,8 +27,8 @@ const std::vector<std::vector<std::string>> kShaderFiles = {
     {"../shaders/pbs.vert",          "../shaders/pbs.frag"},
     {"../shaders/ibl-pbs.vert",      "../shaders/ibl-pbs.frag"},
     {"../shaders/sky.vert",          "../shaders/sky.frag"},
-    {"../shaders/ao-albedo.vert",    "../shaders/ao-albedo.frag"},
-    {"../shaders/ao-normal.vert",    "../shaders/ao-normal.frag"},
+    {"../shaders/ao-compute.vert",   "../shaders/ao-compute.frag"},
+    {"../shaders/ao-norm-alb.vert",  "../shaders/ao-norm-alb.frag"},
     {"../shaders/ao-depth.vert",     "../shaders/ao-depth.frag"},
     {"../shaders/ao-texWrite.vert",  "../shaders/ao-texWrite.frag"}};
 
@@ -114,6 +115,9 @@ GLWidget::GLWidget(QWidget *parent)
     fresnel_(0.05, 0.05, 0.05),
     currentTexture_(0),
     ao_currentTexture_(0),
+    ao_samples_(5),
+    ao_dirs_(5),
+    ao_radius(0.05),
     skyVisible_(true),
     debugView_(false),
     metalness_(0),
@@ -490,10 +494,12 @@ void GLWidget::initializeGL ()
     glDrawBuffers(2, attachments);
 
     // Check framebuffer completeness
+    /*
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         qDebug() << "Error: Framebuffer is not complete! Status: " << status;
     }
+    */
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -505,8 +511,8 @@ void GLWidget::initializeGL ()
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//simple pbs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//ibl pbs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//sky
-    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugAlbedo
-    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugNormals
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOcompute
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugNormalsAlbedo
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugDepth
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugwriteTex
 
@@ -715,7 +721,8 @@ void GLWidget::paintGL ()
             }
 
             else { // Debug view code for AO
-                GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location;
+                GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location,
+                      fov_location, aspect_ratio_location, num_samples_location, num_dirs_location, radius_location;
                 glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
                 // First pass -------------------------------------------------------------------------------------------
@@ -746,14 +753,14 @@ void GLWidget::paintGL ()
 
                 int pId = 4;
                 // Select between Albedo,Normal,Depth
-                if (ao_currentTexture_ == 0){
-                    pId = 4;
-                }
-                else if (ao_currentTexture_ == 1){
+                if (ao_currentTexture_ == 0 || ao_currentTexture_ == 1){
                     pId = 3;
                 }
                 else if (ao_currentTexture_ == 2){
                     pId = 2;
+                }
+                else if (ao_currentTexture_ == 3){
+                    pId = 4;
                 }
 
                 programs_[programs_.size()-pId]->bind();
@@ -768,6 +775,11 @@ void GLWidget::paintGL ()
                 current_text_location   = programs_[programs_.size()-pId]->uniformLocation("current_texture");
                 near_location           = programs_[programs_.size()-pId]->uniformLocation("near");
                 far_location            = programs_[programs_.size()-pId]->uniformLocation("far");
+                fov_location            = programs_[programs_.size()-pId]->uniformLocation("fov");
+                aspect_ratio_location   = programs_[programs_.size()-pId]->uniformLocation("a_ratio");
+                num_samples_location    = programs_[programs_.size()-pId]->uniformLocation("num_samples");
+                num_dirs_location       = programs_[programs_.size()-pId]->uniformLocation("num_directions");
+                radius_location         = programs_[programs_.size()-pId]->uniformLocation("radius");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -787,6 +799,11 @@ void GLWidget::paintGL ()
 
                 glUniform1f(near_location, (float)kZNear);
                 glUniform1f(far_location, (float)kZFar);
+                glUniform1f(fov_location, (float)kFieldOfView * (glm::pi<float>()/180));
+                glUniform1f(aspect_ratio_location, (float)(width_/height_));
+                glUniform1i(num_samples_location, ao_samples_);
+                glUniform1i(num_dirs_location, ao_dirs_);
+                glUniform1f(radius_location, ao_radius);
 
                 glBindVertexArray(VAO_quad);
                 glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
@@ -875,6 +892,24 @@ void GLWidget::SetCurrentTexture(int i)
 void GLWidget::SetCurrentTextureAO(int i)
 {
     ao_currentTexture_ = i;
+    update();
+}
+
+void GLWidget::SetNumSamplesAO(int s)
+{
+    ao_samples_ = s;
+    update();
+}
+
+void GLWidget::SetNumDirsAO(int d)
+{
+    ao_dirs_ = d;
+    update();
+}
+
+void GLWidget::SetRadiusAO(double r)
+{
+    ao_radius = r;
     update();
 }
 

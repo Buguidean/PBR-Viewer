@@ -188,6 +188,21 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   int ao_currentTexture_;
 
   /**
+   * @brief ao_currentTexture_ Indicates the visible texture for the debug view of AO
+   */
+  int ao_samples_;
+
+  /**
+   * @brief ao_currentTexture_ Indicates the visible texture for the debug view of AO
+   */
+  int ao_dirs_;
+
+  /**
+   * @brief ao_currentTexture_ Indicates the visible texture for the debug view of AO
+   */
+  double ao_radius;
+
+  /**
    * @brief skyVisible_ Enables use of skybox
    */
   bool skyVisible_;
@@ -312,6 +327,21 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetCurrentTexture sets the current texture to show for debug AO
    */
   void SetCurrentTextureAO(int);
+
+  /**
+   * @brief SetCurrentTexture sets the current texture to show for debug AO
+   */
+  void SetNumSamplesAO(int);
+
+  /**
+   * @brief SetCurrentTexture sets the current texture to show for debug AO
+   */
+  void SetNumDirsAO(int);
+
+  /**
+   * @brief SetCurrentTexture sets the current texture to show for debug AO
+   */
+  void SetRadiusAO(double);
 
   /**
    * @brief SetFaces Signal that updates the interface label "Framerate".

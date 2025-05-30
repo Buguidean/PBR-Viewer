@@ -59,13 +59,13 @@ DISTFILES += \
     shaders/phong.vert \
     shaders/texMap.frag \
     shaders/texMap.vert \
-    shaders/ao-albedo.vert \
-    shaders/ao-albedo.frag \
-    shaders/ao-normal.vert \
-    shaders/ao-normal.frag \
+    shaders/ao-norm-alb.vert \
+    shaders/ao-norm-alb.frag \
     shaders/ao-depth.vert \
     shaders/ao-depth.frag \
     shaders/ao-texWrite.vert \
-    shaders/ao-texWrite.frag
+    shaders/ao-texWrite.frag \
+    shaders/ao-compute.vert \
+    shaders/ao-compute.frag
 
 

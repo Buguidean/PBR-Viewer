@@ -2,7 +2,7 @@
 
 uniform sampler2D current_texture;
 
-in vec2 TexCoord; // Change to match vertex shader
+in vec2 TexCoord;
 
 out vec4 frag_color;
 
