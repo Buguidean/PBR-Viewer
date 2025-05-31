@@ -30,7 +30,9 @@ const std::vector<std::vector<std::string>> kShaderFiles = {
     {"../shaders/ao-compute.vert",   "../shaders/ao-compute.frag"},
     {"../shaders/ao-norm-alb.vert",  "../shaders/ao-norm-alb.frag"},
     {"../shaders/ao-depth.vert",     "../shaders/ao-depth.frag"},
-    {"../shaders/ao-texWrite.vert",  "../shaders/ao-texWrite.frag"}};
+    {"../shaders/ao-texWrite.vert",  "../shaders/ao-texWrite.frag"},
+    {"../shaders/ao-show.vert",      "../shaders/ao-show.frag"},
+    {"../shaders/ao-filter.vert",    "../shaders/ao-filter.frag"}};
 
 const int kVertexAttributeIdx = 0;
 const int kNormalAttributeIdx = 1;
@@ -120,6 +122,7 @@ GLWidget::GLWidget(QWidget *parent)
     ao_radius(0.05),
     skyVisible_(true),
     debugView_(false),
+    avaliable_color_(0),
     metalness_(0),
     roughness_(0)
 {
@@ -388,6 +391,7 @@ bool GLWidget::LoadColorMap(const QString &filename)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        avaliable_color_ = 1;
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -478,13 +482,13 @@ void GLWidget::initializeGL ()
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, def_albedo_, 0);
 
     glBindTexture(GL_TEXTURE_2D, def_normal_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA16F, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
 
     glBindTexture(GL_TEXTURE_2D, def_depth_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT24, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
@@ -504,6 +508,50 @@ void GLWidget::initializeGL ()
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // Precompute noise texture for AO directions
+    glGenTextures(1, &noise_text_);
+
+    std::vector<float> randomValues(64); // For a 8x8 texture
+    for (int i = 0; i < 64; i++) {
+        randomValues[i] = (float)rand() / (float)RAND_MAX;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, noise_text_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 8, 8, 0, GL_RED, GL_FLOAT, randomValues.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glGenFramebuffers(1, &ao_filter_FrameBuffer);
+    glGenTextures(1, &ao_filter_text_);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
+    glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width_, height_, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ao_filter_text_, 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glGenFramebuffers(1, &ao_FrameBuffer);
+    glGenTextures(1, &ao_text_);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+    glBindTexture(GL_TEXTURE_2D, ao_text_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width_, height_, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ao_text_, 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     //create shader programs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//phong
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//texture mapping
@@ -515,6 +563,8 @@ void GLWidget::initializeGL ()
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugNormalsAlbedo
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugDepth
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugwriteTex
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugshowAO
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOfilter
 
     //load vertex and fragment shader files
     bool res =   LoadProgram(kShaderFiles[0][0],   kShaderFiles[0][1],    programs_[0].get());
@@ -527,6 +577,8 @@ void GLWidget::initializeGL ()
     res = res && LoadProgram(kShaderFiles[7][0],   kShaderFiles[7][1],    programs_[7].get());
     res = res && LoadProgram(kShaderFiles[8][0],   kShaderFiles[8][1],    programs_[8].get());
     res = res && LoadProgram(kShaderFiles[9][0],   kShaderFiles[9][1],    programs_[9].get());
+    res = res && LoadProgram(kShaderFiles[10][0],   kShaderFiles[10][1],    programs_[10].get());
+    res = res && LoadProgram(kShaderFiles[11][0],   kShaderFiles[11][1],    programs_[11].get());
 
     if (!res) exit(0);
 
@@ -562,6 +614,18 @@ void GLWidget::resizeGL(int w, int h)
         glBindTexture(GL_TEXTURE_2D, def_depth_);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
+
+        glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width_, height_, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ao_filter_text_, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+
+        glBindTexture(GL_TEXTURE_2D, ao_text_);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width_, height_, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ao_text_, 0);
 
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -722,20 +786,28 @@ void GLWidget::paintGL ()
 
             else { // Debug view code for AO
                 GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location,
-                      fov_location, aspect_ratio_location, num_samples_location, num_dirs_location, radius_location;
+                      fov_location, aspect_ratio_location, num_samples_location, num_dirs_location, radius_location, width_location,
+                      height_location, noise_tex_location, av_color_location, ao_filtered_location;
                 glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
                 // First pass -------------------------------------------------------------------------------------------
-                programs_[programs_.size()-1]->bind();
+                programs_[programs_.size()-3]->bind();
                 glBindFramebuffer(GL_FRAMEBUFFER,def_FrameBuffer);
 
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                projection_location     = programs_[programs_.size()-1]->uniformLocation("projection");
-                view_location           = programs_[programs_.size()-1]->uniformLocation("view");
-                model_location          = programs_[programs_.size()-1]->uniformLocation("model");
-                normal_matrix_location  = programs_[programs_.size()-1]->uniformLocation("normal_matrix");
+                projection_location     = programs_[programs_.size()-3]->uniformLocation("projection");
+                view_location           = programs_[programs_.size()-3]->uniformLocation("view");
+                model_location          = programs_[programs_.size()-3]->uniformLocation("model");
+                normal_matrix_location  = programs_[programs_.size()-3]->uniformLocation("normal_matrix");
+                color_map_location      = programs_[programs_.size()-3]->uniformLocation("color_map");
+                av_color_location       = programs_[programs_.size()-3]->uniformLocation("av_color");
+
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, color_map_);
+                glUniform1i(color_map_location, 1);
+                glUniform1i(av_color_location, avaliable_color_);
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -747,21 +819,23 @@ void GLWidget::paintGL ()
                 glBindVertexArray(0);
 
                 // Second pass ----------------------------------------------------------------------------------------
-                glBindFramebuffer(GL_FRAMEBUFFER,defaultFramebuffer);
 
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                int pId = 4;
+                int pId = 6;
                 // Select between Albedo,Normal,Depth
                 if (ao_currentTexture_ == 0 || ao_currentTexture_ == 1){
-                    pId = 3;
+                    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+                    pId = 5;
                 }
                 else if (ao_currentTexture_ == 2){
-                    pId = 2;
-                }
-                else if (ao_currentTexture_ == 3){
+                    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
                     pId = 4;
                 }
+                else if (ao_currentTexture_ == 3){
+                    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+                    pId = 6;
+                }
+
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 programs_[programs_.size()-pId]->bind();
 
@@ -772,6 +846,7 @@ void GLWidget::paintGL ()
                 def_albedo_location     = programs_[programs_.size()-pId]->uniformLocation("def_albedo");
                 def_normal_location     = programs_[programs_.size()-pId]->uniformLocation("def_normal");
                 def_depth_location      = programs_[programs_.size()-pId]->uniformLocation("def_depth");
+                noise_tex_location      = programs_[programs_.size()-pId]->uniformLocation("noise_tex");
                 current_text_location   = programs_[programs_.size()-pId]->uniformLocation("current_texture");
                 near_location           = programs_[programs_.size()-pId]->uniformLocation("near");
                 far_location            = programs_[programs_.size()-pId]->uniformLocation("far");
@@ -780,6 +855,8 @@ void GLWidget::paintGL ()
                 num_samples_location    = programs_[programs_.size()-pId]->uniformLocation("num_samples");
                 num_dirs_location       = programs_[programs_.size()-pId]->uniformLocation("num_directions");
                 radius_location         = programs_[programs_.size()-pId]->uniformLocation("radius");
+                width_location          = programs_[programs_.size()-pId]->uniformLocation("vp_width");
+                height_location         = programs_[programs_.size()-pId]->uniformLocation("vp_height");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -795,19 +872,102 @@ void GLWidget::paintGL ()
                 glActiveTexture(GL_TEXTURE2);
                 glBindTexture(GL_TEXTURE_2D, def_depth_);
                 glUniform1i(def_depth_location, 2);
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, noise_text_);
+                glUniform1i(noise_tex_location, 3);
                 glUniform1i(current_text_location, ao_currentTexture_);
 
                 glUniform1f(near_location, (float)kZNear);
                 glUniform1f(far_location, (float)kZFar);
                 glUniform1f(fov_location, (float)kFieldOfView * (glm::pi<float>()/180));
                 glUniform1f(aspect_ratio_location, (float)(width_/height_));
+                glUniform1f(radius_location, ao_radius);
+                glUniform1f(width_location, (float)(width_));
+                glUniform1f(height_location, (float)(height_));
+
                 glUniform1i(num_samples_location, ao_samples_);
                 glUniform1i(num_dirs_location, ao_dirs_);
-                glUniform1f(radius_location, ao_radius);
 
                 glBindVertexArray(VAO_quad);
                 glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
                 glBindVertexArray(0);
+
+                // Third pass ----------------------------------------------------------------------------------------
+                if (ao_currentTexture_ == 3) {
+                    GLint ao_tex_location, texel_size_location, direction_location;
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-1]->bind();
+
+                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+
+                    glUniform1f(near_location, (float)kZNear);
+                    glUniform1f(far_location, (float)kZFar);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, def_depth_);
+                    glUniform1i(def_depth_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, ao_text_);
+                    glUniform1i(ao_tex_location, 1);
+                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                    glUniform1i(direction_location, 0);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-1]->bind();
+
+                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+
+                    glUniform1f(near_location, (float)kZNear);
+                    glUniform1f(far_location, (float)kZFar);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, def_depth_);
+                    glUniform1i(def_depth_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
+                    glUniform1i(ao_tex_location, 1);
+                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                    glUniform1i(direction_location, 1);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+
+                    // Filtered AO (two directions)
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-2]->bind();
+
+                    ao_filtered_location    = programs_[programs_.size()-2]->uniformLocation("ao_texture");
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, ao_text_);
+                    glUniform1i(ao_filtered_location, 0);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+                }
+
             }
 
             //SKY-----------------------------------------------------------------------------------------
@@ -817,13 +977,13 @@ void GLWidget::paintGL ()
                 // Ignore camera translation
                 view = glm::mat4(glm::mat3(camera_.SetView()));
 
-                programs_[programs_.size()-5]->bind();
+                programs_[programs_.size()-7]->bind();
 
-                projection_location     = programs_[programs_.size()-5]->uniformLocation("projection");
-                view_location           = programs_[programs_.size()-5]->uniformLocation("view");
-                model_location          = programs_[programs_.size()-5]->uniformLocation("model");
-                normal_matrix_location  = programs_[programs_.size()-5]->uniformLocation("normal_matrix");
-                specular_map_location   = programs_[programs_.size()-5]->uniformLocation("specular_map");
+                projection_location     = programs_[programs_.size()-7]->uniformLocation("projection");
+                view_location           = programs_[programs_.size()-7]->uniformLocation("view");
+                model_location          = programs_[programs_.size()-7]->uniformLocation("model");
+                normal_matrix_location  = programs_[programs_.size()-7]->uniformLocation("normal_matrix");
+                specular_map_location   = programs_[programs_.size()-7]->uniformLocation("specular_map");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);

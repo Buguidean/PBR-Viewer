@@ -11,9 +11,11 @@ uniform mat3 normal_matrix;
 
 out vec3 nm_Normal;
 out vec3 Color;
+out vec2 TexCoord;
 
 void main(void)  {
-    Color = vec3(0.0,0.0,1.0);
+    Color = vec3(1.0,0.0,0.0);
+    TexCoord = texCoord;
     nm_Normal = normalize(normal_matrix * normal);
     gl_Position = projection * view * model * vec4(vert,1.0);
 }

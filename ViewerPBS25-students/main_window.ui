@@ -462,8 +462,14 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>24</number>
+         </property>
          <property name="value">
-          <number>5</number>
+          <number>8</number>
          </property>
         </widget>
         <widget class="QDoubleSpinBox" name="RadiusSpinBox">
@@ -474,6 +480,15 @@
            <width>71</width>
            <height>26</height>
           </rect>
+         </property>
+         <property name="minimum">
+          <double>0.010000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>0.150000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.010000000000000</double>
          </property>
          <property name="value">
           <double>0.050000000000000</double>
@@ -532,8 +547,14 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>16</number>
+         </property>
          <property name="value">
-          <number>5</number>
+          <number>8</number>
          </property>
         </widget>
         <widget class="QLabel" name="label_9">

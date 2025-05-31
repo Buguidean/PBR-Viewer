@@ -66,6 +66,10 @@ DISTFILES += \
     shaders/ao-texWrite.vert \
     shaders/ao-texWrite.frag \
     shaders/ao-compute.vert \
-    shaders/ao-compute.frag
+    shaders/ao-compute.frag \
+    shaders/ao-show.vert \
+    shaders/ao-show.frag \
+    shaders/ao-filter.vert \
+    shaders/ao-filter.frag
 
 

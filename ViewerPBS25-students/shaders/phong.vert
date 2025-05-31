@@ -17,7 +17,7 @@ out vec3 Color;
 out vec3 LightColor;
 
 void main(void)  {
-    Color = vec3(0.969,0.863,0.6);
+    Color = vec3(1.0,0.0,0.0);
     LightColor = vec3(1.0,1.0,1.0);
     LightPos = vec3(view * vec4(light,1.0));
     nm_Normal = normalize(normal_matrix * normal);

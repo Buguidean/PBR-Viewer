@@ -153,6 +153,21 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   GLuint def_depth_;
 
   /**
+   * @brief def_depth_ Texture for storing the depths (AO).
+   */
+  GLuint noise_text_;
+
+  /**
+   * @brief def_depth_ Texture for storing the depths (AO).
+   */
+  GLuint ao_filter_text_;
+
+  /**
+   * @brief def_depth_ Texture for storing the depths (AO).
+   */
+  GLuint ao_text_;
+
+  /**
    * @brief initialized_ Whether the widget has finished initializations.
    */
   bool initialized_;
@@ -213,6 +228,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   bool debugView_;
 
   /**
+   * @brief debugView_ Enables use of debugView
+   */
+  int avaliable_color_;
+
+  /**
    * @brief usePBStex_ Enables use of textures for PBS
    */
   int usePBStex_;
@@ -233,6 +253,8 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   float roughness_;
 
   GLuint def_FrameBuffer;
+  GLuint ao_filter_FrameBuffer;
+  GLuint ao_FrameBuffer;
 
   GLuint VAO;
   GLuint VBO_v;
