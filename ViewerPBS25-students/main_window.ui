@@ -382,7 +382,7 @@
          <property name="geometry">
           <rect>
            <x>10</x>
-           <y>470</y>
+           <y>500</y>
            <width>181</width>
            <height>20</height>
           </rect>
@@ -395,7 +395,7 @@
          <property name="geometry">
           <rect>
            <x>20</x>
-           <y>490</y>
+           <y>520</y>
            <width>151</width>
            <height>16</height>
           </rect>
@@ -408,7 +408,7 @@
          <property name="geometry">
           <rect>
            <x>20</x>
-           <y>550</y>
+           <y>580</y>
            <width>121</width>
            <height>24</height>
           </rect>
@@ -438,7 +438,7 @@
          <property name="geometry">
           <rect>
            <x>20</x>
-           <y>520</y>
+           <y>550</y>
            <width>111</width>
            <height>22</height>
           </rect>
@@ -451,7 +451,7 @@
          <property name="geometry">
           <rect>
            <x>100</x>
-           <y>590</y>
+           <y>620</y>
            <width>71</width>
            <height>26</height>
           </rect>
@@ -476,7 +476,7 @@
          <property name="geometry">
           <rect>
            <x>100</x>
-           <y>650</y>
+           <y>680</y>
            <width>71</width>
            <height>26</height>
           </rect>
@@ -498,7 +498,7 @@
          <property name="geometry">
           <rect>
            <x>20</x>
-           <y>590</y>
+           <y>620</y>
            <width>65</width>
            <height>26</height>
           </rect>
@@ -517,7 +517,7 @@
          <property name="geometry">
           <rect>
            <x>20</x>
-           <y>620</y>
+           <y>650</y>
            <width>65</width>
            <height>26</height>
           </rect>
@@ -536,7 +536,7 @@
          <property name="geometry">
           <rect>
            <x>100</x>
-           <y>620</y>
+           <y>650</y>
            <width>71</width>
            <height>26</height>
           </rect>
@@ -561,7 +561,7 @@
          <property name="geometry">
           <rect>
            <x>20</x>
-           <y>650</y>
+           <y>680</y>
            <width>65</width>
            <height>26</height>
           </rect>
@@ -574,6 +574,19 @@
          </property>
          <property name="text">
           <string>Radius</string>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="check_ao">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>460</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>HSSAO</string>
          </property>
         </widget>
        </widget>
@@ -793,6 +806,7 @@
     <slot>SetNumSamplesAO(int)</slot>
     <slot>SetNumDirsAO(int)</slot>
     <slot>SetRadiusAO(double)</slot>
+    <slot>SetAOContribution(bool)</slot>
    </slots>
   </customwidget>
  </customwidgets>
@@ -1143,6 +1157,22 @@
     <hint type="sourcelabel">
      <x>751</x>
      <y>693</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>468</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>check_ao</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetAOContribution(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>711</x>
+     <y>501</y>
     </hint>
     <hint type="destinationlabel">
      <x>308</x>

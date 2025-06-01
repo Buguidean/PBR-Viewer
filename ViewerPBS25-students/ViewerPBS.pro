@@ -70,6 +70,8 @@ DISTFILES += \
     shaders/ao-show.vert \
     shaders/ao-show.frag \
     shaders/ao-filter.vert \
-    shaders/ao-filter.frag
+    shaders/ao-filter.frag \
+    shaders/ao-IBL.vert \
+    shaders/ao-IBL.frag
 
 

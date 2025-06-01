@@ -148,6 +148,16 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   GLuint def_normal_;
 
   /**
+   * @brief def_normal_ Texture for storing the normals (AO).
+   */
+  GLuint def_world_normal_;
+
+  /**
+   * @brief def_normal_ Texture for storing the normals (AO).
+   */
+  GLuint def_material_;
+
+  /**
    * @brief def_depth_ Texture for storing the depths (AO).
    */
   GLuint def_depth_;
@@ -226,6 +236,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief debugView_ Enables use of debugView
    */
   bool debugView_;
+
+  /**
+   * @brief debugView_ Enables use of debugView
+   */
+  bool aoComponent_;
 
   /**
    * @brief debugView_ Enables use of debugView
@@ -329,6 +344,11 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetDebugView enables/disables the debug view for AO
    */
   void SetDebugView(bool set);
+
+  /**
+   * @brief SetDebugView enables/disables the debug view for AO
+   */
+  void SetAOContribution(bool set);
 
   /**
    * @brief SetPBSTexture enables/disables the use of textures for PBS

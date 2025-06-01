@@ -27,6 +27,7 @@ const std::vector<std::vector<std::string>> kShaderFiles = {
     {"../shaders/pbs.vert",          "../shaders/pbs.frag"},
     {"../shaders/ibl-pbs.vert",      "../shaders/ibl-pbs.frag"},
     {"../shaders/sky.vert",          "../shaders/sky.frag"},
+    {"../shaders/ao-IBL.vert",       "../shaders/ao-IBL.frag"},
     {"../shaders/ao-compute.vert",   "../shaders/ao-compute.frag"},
     {"../shaders/ao-norm-alb.vert",  "../shaders/ao-norm-alb.frag"},
     {"../shaders/ao-depth.vert",     "../shaders/ao-depth.frag"},
@@ -122,6 +123,7 @@ GLWidget::GLWidget(QWidget *parent)
     ao_radius(0.05),
     skyVisible_(true),
     debugView_(false),
+    aoComponent_(false),
     avaliable_color_(0),
     metalness_(0),
     roughness_(0)
@@ -471,6 +473,7 @@ void GLWidget::initializeGL ()
     glGenFramebuffers(1, &def_FrameBuffer);
     glGenTextures(1, &def_albedo_);
     glGenTextures(1, &def_normal_);
+    glGenTextures(1, &def_material_);
     glGenTextures(1, &def_depth_);
 
     glBindFramebuffer(GL_FRAMEBUFFER, def_FrameBuffer);
@@ -487,6 +490,13 @@ void GLWidget::initializeGL ()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
 
+    // For the metalness and roughness
+    glBindTexture(GL_TEXTURE_2D, def_material_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, width_, height_, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, def_material_, 0);
+
     glBindTexture(GL_TEXTURE_2D, def_depth_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width_, height_, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -494,8 +504,8 @@ void GLWidget::initializeGL ()
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, def_depth_, 0);
 
     // Define which color attachments to draw to
-    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-    glDrawBuffers(2, attachments);
+    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(3, attachments);
 
     // Check framebuffer completeness
     /*
@@ -559,6 +569,7 @@ void GLWidget::initializeGL ()
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//simple pbs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//ibl pbs
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//sky
+    programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOIBL
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOcompute
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugNormalsAlbedo
     programs_.push_back(std::make_unique<QOpenGLShaderProgram>());//AOdebugDepth
@@ -579,6 +590,7 @@ void GLWidget::initializeGL ()
     res = res && LoadProgram(kShaderFiles[9][0],   kShaderFiles[9][1],    programs_[9].get());
     res = res && LoadProgram(kShaderFiles[10][0],   kShaderFiles[10][1],    programs_[10].get());
     res = res && LoadProgram(kShaderFiles[11][0],   kShaderFiles[11][1],    programs_[11].get());
+    res = res && LoadProgram(kShaderFiles[12][0],   kShaderFiles[12][1],    programs_[12].get());
 
     if (!res) exit(0);
 
@@ -609,6 +621,11 @@ void GLWidget::resizeGL(int w, int h)
         glBindTexture(GL_TEXTURE_2D, def_normal_);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width_, height_, 0, GL_RGBA, GL_FLOAT, NULL);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, def_normal_, 0);
+
+        // Resize material texture
+        glBindTexture(GL_TEXTURE_2D, def_material_);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, width_, height_, 0, GL_RG, GL_UNSIGNED_BYTE, NULL);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, def_material_, 0);
 
         // Resize depth texture
         glBindTexture(GL_TEXTURE_2D, def_depth_);
@@ -714,74 +731,319 @@ void GLWidget::paintGL ()
                 current_text_location, light_location, roughness_location, metalness_location, usePBStex_location, useIBLdirl_location;
 
             if (!debugView_){
-                //MESH-----------------------------------------------------------------------------------------
-                //general shader setting
 
-                programs_[currentShader_]->bind();
+                if (aoComponent_){
+                    GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location,
+                        fov_location, aspect_ratio_location, num_samples_location, num_dirs_location, radius_location, width_location,
+                        height_location, noise_tex_location, av_color_location, ao_filtered_location;
 
-                projection_location       = programs_[currentShader_]->uniformLocation("projection");
-                view_location             = programs_[currentShader_]->uniformLocation("view");
-                inv_view_location         = programs_[currentShader_]->uniformLocation("inv_view");
-                model_location            = programs_[currentShader_]->uniformLocation("model");
-                normal_matrix_location    = programs_[currentShader_]->uniformLocation("normal_matrix");
-                specular_map_location     = programs_[currentShader_]->uniformLocation("specular_map");
-                diffuse_map_location      = programs_[currentShader_]->uniformLocation("diffuse_map");
-                color_map_location        = programs_[currentShader_]->uniformLocation("color_map");
-                roughness_map_location    = programs_[currentShader_]->uniformLocation("roughness_map");
-                metalness_map_location    = programs_[currentShader_]->uniformLocation("metalness_map");
-                current_text_location     = programs_[currentShader_]->uniformLocation("current_texture");
-                fresnel_location          = programs_[currentShader_]->uniformLocation("fresnel");
-                light_location            = programs_[currentShader_]->uniformLocation("light");
-                roughness_location        = programs_[currentShader_]->uniformLocation("roughness");
-                metalness_location        = programs_[currentShader_]->uniformLocation("metalness");
-                usePBStex_location        = programs_[currentShader_]->uniformLocation("pbstex_use");
-                useIBLdirl_location       = programs_[currentShader_]->uniformLocation("direct_light");
+                    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
-                glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
-                glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
-                glUniformMatrix4fv(inv_view_location, 1, GL_FALSE, &iview[0][0]);
-                glUniformMatrix4fv(model_location, 1, GL_FALSE, &model[0][0]);
-                glUniformMatrix3fv(normal_matrix_location, 1, GL_FALSE, &normal[0][0]);
+                    // First pass -------------------------------------------------------------------------------------------
+                    programs_[programs_.size()-3]->bind();
+                    glBindFramebuffer(GL_FRAMEBUFFER,def_FrameBuffer);
 
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
-                glUniform1i(specular_map_location, 0);
+                    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_CUBE_MAP, diffuse_map_);
-                glUniform1i(diffuse_map_location, 1);
+                    projection_location     = programs_[programs_.size()-3]->uniformLocation("projection");
+                    view_location           = programs_[programs_.size()-3]->uniformLocation("view");
+                    model_location          = programs_[programs_.size()-3]->uniformLocation("model");
+                    normal_matrix_location  = programs_[programs_.size()-3]->uniformLocation("normal_matrix");
+                    color_map_location      = programs_[programs_.size()-3]->uniformLocation("color_map");
+                    roughness_map_location  = programs_[programs_.size()-3]->uniformLocation("roughness_map");
+                    metalness_map_location  = programs_[programs_.size()-3]->uniformLocation("metalness_map");
+                    av_color_location       = programs_[programs_.size()-3]->uniformLocation("av_color");
 
-                //TODO(students): active texture location for the following textures:
-                //Texture unit 3 color_map_
-                //Texture unit 4 roughness_map_
-                //Texture unit 5 metalness_map_
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, color_map_);
+                    glUniform1i(color_map_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, roughness_map_);
+                    glUniform1i(roughness_map_location, 1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, metalness_map_);
+                    glUniform1i(metalness_map_location, 2);
+                    glUniform1i(av_color_location, avaliable_color_);
 
-                glActiveTexture(GL_TEXTURE3);
-                glBindTexture(GL_TEXTURE_2D, color_map_);
-                glUniform1i(color_map_location, 3);
+                    glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
+                    glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
+                    glUniformMatrix4fv(model_location, 1, GL_FALSE, &model[0][0]);
+                    glUniformMatrix3fv(normal_matrix_location, 1, GL_FALSE, &normal[0][0]);
 
-                glActiveTexture(GL_TEXTURE4);
-                glBindTexture(GL_TEXTURE_2D, roughness_map_);
-                glUniform1i(roughness_map_location, 4);
+                    glBindVertexArray(VAO);
+                    glDrawElements(GL_TRIANGLES,mesh_->faces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
 
-                glActiveTexture(GL_TEXTURE5);
-                glBindTexture(GL_TEXTURE_2D, metalness_map_);
-                glUniform1i(metalness_map_location, 5);
+                    // Write the sky to the albedo
 
-                //TODO END
-                glUniform1i(current_text_location, currentTexture_ + 3);
-                glUniform1i(usePBStex_location, usePBStex_);
-                glUniform1i(useIBLdirl_location, useIBLdirl_);
-                glUniform3f(fresnel_location, fresnel_[0], fresnel_[1], fresnel_[2]);
-                glUniform3f(light_location, 0.5f, 0.5f, 0.5f);
-                glUniform1f(roughness_location, roughness_);
-                glUniform1f(metalness_location, metalness_);
+                    // Ignore camera translation
+                    view = glm::mat4(glm::mat3(camera_.SetView()));
 
-                // TODO(students): Implement draw call of the mesh
-                glBindVertexArray(VAO);
-                glDrawElements(GL_TRIANGLES,mesh_->faces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
-                glBindVertexArray(0);
-                // TODO END.
+                    programs_[programs_.size()-8]->bind();
+
+                    projection_location     = programs_[programs_.size()-8]->uniformLocation("projection");
+                    view_location           = programs_[programs_.size()-8]->uniformLocation("view");
+                    model_location          = programs_[programs_.size()-8]->uniformLocation("model");
+                    normal_matrix_location  = programs_[programs_.size()-8]->uniformLocation("normal_matrix");
+                    specular_map_location   = programs_[programs_.size()-8]->uniformLocation("specular_map");
+
+                    glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
+                    glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
+                    glUniformMatrix4fv(model_location, 1, GL_FALSE, &model[0][0]);
+                    glUniformMatrix3fv(normal_matrix_location, 1, GL_FALSE, &normal[0][0]);
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
+                    glUniform1i(specular_map_location, 0);
+
+                    // TODO(students): implement the draw call of the sky box
+                    glDepthFunc(GL_LEQUAL);
+                    glBindVertexArray(VAO_sky);
+                    glDrawElements(GL_TRIANGLES,skyFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+                    glDepthFunc(GL_LESS);
+                    // TODO END.
+
+                    // Second pass ----------------------------------------------------------------------------------------
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-6]->bind();
+
+                    def_normal_location     = programs_[programs_.size()-6]->uniformLocation("def_normal");
+                    def_depth_location      = programs_[programs_.size()-6]->uniformLocation("def_depth");
+                    noise_tex_location      = programs_[programs_.size()-6]->uniformLocation("noise_tex");
+                    near_location           = programs_[programs_.size()-6]->uniformLocation("near");
+                    far_location            = programs_[programs_.size()-6]->uniformLocation("far");
+                    fov_location            = programs_[programs_.size()-6]->uniformLocation("fov");
+                    aspect_ratio_location   = programs_[programs_.size()-6]->uniformLocation("a_ratio");
+                    num_samples_location    = programs_[programs_.size()-6]->uniformLocation("num_samples");
+                    num_dirs_location       = programs_[programs_.size()-6]->uniformLocation("num_directions");
+                    radius_location         = programs_[programs_.size()-6]->uniformLocation("radius");
+                    width_location          = programs_[programs_.size()-6]->uniformLocation("vp_width");
+                    height_location         = programs_[programs_.size()-6]->uniformLocation("vp_height");
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, def_normal_);
+                    glUniform1i(def_normal_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, def_depth_);
+                    glUniform1i(def_depth_location, 1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, noise_text_);
+                    glUniform1i(noise_tex_location, 2);
+
+                    glUniform1f(near_location, (float)kZNear);
+                    glUniform1f(far_location, (float)kZFar);
+                    glUniform1f(fov_location, (float)kFieldOfView * (glm::pi<float>()/180));
+                    glUniform1f(aspect_ratio_location, (float)(width_/height_));
+                    glUniform1f(radius_location, ao_radius);
+                    glUniform1f(width_location, (float)(width_));
+                    glUniform1f(height_location, (float)(height_));
+
+                    glUniform1i(num_samples_location, ao_samples_);
+                    glUniform1i(num_dirs_location, ao_dirs_);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+
+                    // Third pass ----------------------------------------------------------------------------------------
+
+                    GLint ao_tex_location, texel_size_location, direction_location, def_material_location;
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-1]->bind();
+
+                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+
+                    glUniform1f(near_location, (float)kZNear);
+                    glUniform1f(far_location, (float)kZFar);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, def_depth_);
+                    glUniform1i(def_depth_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, ao_text_);
+                    glUniform1i(ao_tex_location, 1);
+                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                    glUniform1i(direction_location, 0);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-1]->bind();
+
+                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+
+                    glUniform1f(near_location, (float)kZNear);
+                    glUniform1f(far_location, (float)kZFar);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, def_depth_);
+                    glUniform1i(def_depth_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
+                    glUniform1i(ao_tex_location, 1);
+                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                    glUniform1i(direction_location, 1);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+
+                    // IBL shader + AO contribution + SkyBox
+
+                    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                    programs_[programs_.size()-7]->bind();
+
+                    view_location           = programs_[programs_.size()-7]->uniformLocation("view");
+                    inv_view_location       = programs_[programs_.size()-7]->uniformLocation("inv_view");
+                    ao_filtered_location    = programs_[programs_.size()-7]->uniformLocation("ao_texture");
+                    def_albedo_location     = programs_[programs_.size()-7]->uniformLocation("def_albedo");
+                    def_normal_location     = programs_[programs_.size()-7]->uniformLocation("def_normal");
+                    def_depth_location      = programs_[programs_.size()-7]->uniformLocation("def_depth");
+                    def_material_location   = programs_[programs_.size()-7]->uniformLocation("def_material");
+                    fresnel_location        = programs_[programs_.size()-7]->uniformLocation("fresnel");
+                    light_location          = programs_[programs_.size()-7]->uniformLocation("light");
+                    roughness_location      = programs_[programs_.size()-7]->uniformLocation("roughness");
+                    metalness_location      = programs_[programs_.size()-7]->uniformLocation("metalness");
+                    usePBStex_location      = programs_[programs_.size()-7]->uniformLocation("pbstex_use");
+                    useIBLdirl_location     = programs_[programs_.size()-7]->uniformLocation("direct_light");
+                    near_location           = programs_[programs_.size()-7]->uniformLocation("near");
+                    far_location            = programs_[programs_.size()-7]->uniformLocation("far");
+                    fov_location            = programs_[programs_.size()-7]->uniformLocation("fov");
+                    aspect_ratio_location   = programs_[programs_.size()-7]->uniformLocation("a_ratio");
+                    specular_map_location   = programs_[programs_.size()-7]->uniformLocation("specular_map");
+                    diffuse_map_location    = programs_[programs_.size()-7]->uniformLocation("diffuse_map");
+
+                    glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
+                    glUniformMatrix4fv(inv_view_location, 1, GL_FALSE, &iview[0][0]);
+                    glUniform1i(usePBStex_location, usePBStex_);
+                    glUniform1i(useIBLdirl_location, useIBLdirl_);
+                    glUniform3f(fresnel_location, fresnel_[0], fresnel_[1], fresnel_[2]);
+                    glUniform3f(light_location, 0.5f, 0.5f, 0.5f);
+                    glUniform1f(roughness_location, roughness_);
+                    glUniform1f(metalness_location, metalness_);
+                    glUniform1f(near_location, (float)kZNear);
+                    glUniform1f(far_location, (float)kZFar);
+                    glUniform1f(fov_location, (float)kFieldOfView * (glm::pi<float>()/180));
+                    glUniform1f(aspect_ratio_location, (float)(width_/height_));
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, ao_text_);
+                    glUniform1i(ao_filtered_location, 0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_2D, def_albedo_);
+                    glUniform1i(def_albedo_location, 1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindTexture(GL_TEXTURE_2D, def_normal_);
+                    glUniform1i(def_normal_location, 2);
+                    glActiveTexture(GL_TEXTURE3);
+                    glBindTexture(GL_TEXTURE_2D, def_depth_);
+                    glUniform1i(def_depth_location, 3);
+                    glActiveTexture(GL_TEXTURE4);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
+                    glUniform1i(specular_map_location, 4);
+                    glActiveTexture(GL_TEXTURE5);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, diffuse_map_);
+                    glUniform1i(diffuse_map_location, 5);
+                    glActiveTexture(GL_TEXTURE6);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, def_material_);
+                    glUniform1i(def_material_location, 6);
+
+                    glBindVertexArray(VAO_quad);
+                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+                }
+                else{
+                    //MESH-----------------------------------------------------------------------------------------
+                    //general shader setting
+
+                    programs_[currentShader_]->bind();
+
+                    projection_location       = programs_[currentShader_]->uniformLocation("projection");
+                    view_location             = programs_[currentShader_]->uniformLocation("view");
+                    inv_view_location         = programs_[currentShader_]->uniformLocation("inv_view");
+                    model_location            = programs_[currentShader_]->uniformLocation("model");
+                    normal_matrix_location    = programs_[currentShader_]->uniformLocation("normal_matrix");
+                    specular_map_location     = programs_[currentShader_]->uniformLocation("specular_map");
+                    diffuse_map_location      = programs_[currentShader_]->uniformLocation("diffuse_map");
+                    color_map_location        = programs_[currentShader_]->uniformLocation("color_map");
+                    roughness_map_location    = programs_[currentShader_]->uniformLocation("roughness_map");
+                    metalness_map_location    = programs_[currentShader_]->uniformLocation("metalness_map");
+                    current_text_location     = programs_[currentShader_]->uniformLocation("current_texture");
+                    fresnel_location          = programs_[currentShader_]->uniformLocation("fresnel");
+                    light_location            = programs_[currentShader_]->uniformLocation("light");
+                    roughness_location        = programs_[currentShader_]->uniformLocation("roughness");
+                    metalness_location        = programs_[currentShader_]->uniformLocation("metalness");
+                    usePBStex_location        = programs_[currentShader_]->uniformLocation("pbstex_use");
+                    useIBLdirl_location       = programs_[currentShader_]->uniformLocation("direct_light");
+
+                    glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
+                    glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
+                    glUniformMatrix4fv(inv_view_location, 1, GL_FALSE, &iview[0][0]);
+                    glUniformMatrix4fv(model_location, 1, GL_FALSE, &model[0][0]);
+                    glUniformMatrix3fv(normal_matrix_location, 1, GL_FALSE, &normal[0][0]);
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, specular_map_);
+                    glUniform1i(specular_map_location, 0);
+
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindTexture(GL_TEXTURE_CUBE_MAP, diffuse_map_);
+                    glUniform1i(diffuse_map_location, 1);
+
+                    //TODO(students): active texture location for the following textures:
+                    //Texture unit 3 color_map_
+                    //Texture unit 4 roughness_map_
+                    //Texture unit 5 metalness_map_
+
+                    glActiveTexture(GL_TEXTURE3);
+                    glBindTexture(GL_TEXTURE_2D, color_map_);
+                    glUniform1i(color_map_location, 3);
+
+                    glActiveTexture(GL_TEXTURE4);
+                    glBindTexture(GL_TEXTURE_2D, roughness_map_);
+                    glUniform1i(roughness_map_location, 4);
+
+                    glActiveTexture(GL_TEXTURE5);
+                    glBindTexture(GL_TEXTURE_2D, metalness_map_);
+                    glUniform1i(metalness_map_location, 5);
+
+                    //TODO END
+                    glUniform1i(current_text_location, currentTexture_ + 3);
+                    glUniform1i(usePBStex_location, usePBStex_);
+                    glUniform1i(useIBLdirl_location, useIBLdirl_);
+                    glUniform3f(fresnel_location, fresnel_[0], fresnel_[1], fresnel_[2]);
+                    glUniform3f(light_location, 0.5f, 0.5f, 0.5f);
+                    glUniform1f(roughness_location, roughness_);
+                    glUniform1f(metalness_location, metalness_);
+
+                    // TODO(students): Implement draw call of the mesh
+                    glBindVertexArray(VAO);
+                    glDrawElements(GL_TRIANGLES,mesh_->faces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                    glBindVertexArray(0);
+                    // TODO END.
+                }
             }
 
             else { // Debug view code for AO
@@ -971,19 +1233,19 @@ void GLWidget::paintGL ()
             }
 
             //SKY-----------------------------------------------------------------------------------------
-            if(skyVisible_) {
+            if(skyVisible_ && !debugView_ && !aoComponent_) {
                 //model = camera_.SetIdentity();
 
                 // Ignore camera translation
                 view = glm::mat4(glm::mat3(camera_.SetView()));
 
-                programs_[programs_.size()-7]->bind();
+                programs_[programs_.size()-8]->bind();
 
-                projection_location     = programs_[programs_.size()-7]->uniformLocation("projection");
-                view_location           = programs_[programs_.size()-7]->uniformLocation("view");
-                model_location          = programs_[programs_.size()-7]->uniformLocation("model");
-                normal_matrix_location  = programs_[programs_.size()-7]->uniformLocation("normal_matrix");
-                specular_map_location   = programs_[programs_.size()-7]->uniformLocation("specular_map");
+                projection_location     = programs_[programs_.size()-8]->uniformLocation("projection");
+                view_location           = programs_[programs_.size()-8]->uniformLocation("view");
+                model_location          = programs_[programs_.size()-8]->uniformLocation("model");
+                normal_matrix_location  = programs_[programs_.size()-8]->uniformLocation("normal_matrix");
+                specular_map_location   = programs_[programs_.size()-8]->uniformLocation("specular_map");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -1082,6 +1344,12 @@ void GLWidget::SetSkyVisible(bool set)
 void GLWidget::SetDebugView(bool set)
 {
     debugView_ = set;
+    update();
+}
+
+void GLWidget::SetAOContribution(bool set)
+{
+    aoComponent_ = set;
     update();
 }
 
