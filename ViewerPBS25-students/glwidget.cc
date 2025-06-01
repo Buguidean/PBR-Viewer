@@ -776,6 +776,8 @@ void GLWidget::paintGL ()
                     glBindVertexArray(0);
 
                     // Write the sky to the albedo
+                    unsigned int attachmentsSky[1] = {GL_COLOR_ATTACHMENT0};
+                    glDrawBuffers(1, attachmentsSky);
 
                     // Ignore camera translation
                     view = glm::mat4(glm::mat3(camera_.SetView()));
@@ -804,6 +806,10 @@ void GLWidget::paintGL ()
                     glBindVertexArray(0);
                     glDepthFunc(GL_LESS);
                     // TODO END.
+
+                    unsigned int attachments[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+                    glDrawBuffers(3, attachments);
+                    view = camera_.SetView();
 
                     // Second pass ----------------------------------------------------------------------------------------
 
@@ -967,7 +973,7 @@ void GLWidget::paintGL ()
                     glBindTexture(GL_TEXTURE_CUBE_MAP, diffuse_map_);
                     glUniform1i(diffuse_map_location, 5);
                     glActiveTexture(GL_TEXTURE6);
-                    glBindTexture(GL_TEXTURE_CUBE_MAP, def_material_);
+                    glBindTexture(GL_TEXTURE_2D, def_material_);
                     glUniform1i(def_material_location, 6);
 
                     glBindVertexArray(VAO_quad);
