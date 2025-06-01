@@ -125,6 +125,8 @@ GLWidget::GLWidget(QWidget *parent)
     debugView_(false),
     aoComponent_(false),
     avaliable_color_(0),
+    use_noise_(0),
+    use_filter(0),
     metalness_(0),
     roughness_(0)
 {
@@ -735,7 +737,7 @@ void GLWidget::paintGL ()
                 if (aoComponent_){
                     GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location,
                         fov_location, aspect_ratio_location, num_samples_location, num_dirs_location, radius_location, width_location,
-                        height_location, noise_tex_location, av_color_location, ao_filtered_location;
+                        height_location, noise_tex_location, av_color_location, ao_filtered_location, use_noise_location;
 
                     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
@@ -830,6 +832,7 @@ void GLWidget::paintGL ()
                     radius_location         = programs_[programs_.size()-6]->uniformLocation("radius");
                     width_location          = programs_[programs_.size()-6]->uniformLocation("vp_width");
                     height_location         = programs_[programs_.size()-6]->uniformLocation("vp_height");
+                    use_noise_location      = programs_[programs_.size()-6]->uniformLocation("use_noise");
 
                     glActiveTexture(GL_TEXTURE0);
                     glBindTexture(GL_TEXTURE_2D, def_normal_);
@@ -851,6 +854,7 @@ void GLWidget::paintGL ()
 
                     glUniform1i(num_samples_location, ao_samples_);
                     glUniform1i(num_dirs_location, ao_dirs_);
+                    glUniform1i(use_noise_location, use_noise_);
 
                     glBindVertexArray(VAO_quad);
                     glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
@@ -860,59 +864,61 @@ void GLWidget::paintGL ()
 
                     GLint ao_tex_location, texel_size_location, direction_location, def_material_location;
 
-                    glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    if (use_filter){
+                        glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    programs_[programs_.size()-1]->bind();
+                        programs_[programs_.size()-1]->bind();
 
-                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
-                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
-                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
-                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
-                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
-                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+                        near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                        far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                        def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                        ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                        texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                        direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
 
-                    glUniform1f(near_location, (float)kZNear);
-                    glUniform1f(far_location, (float)kZFar);
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, def_depth_);
-                    glUniform1i(def_depth_location, 0);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, ao_text_);
-                    glUniform1i(ao_tex_location, 1);
-                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
-                    glUniform1i(direction_location, 0);
+                        glUniform1f(near_location, (float)kZNear);
+                        glUniform1f(far_location, (float)kZFar);
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, def_depth_);
+                        glUniform1i(def_depth_location, 0);
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, ao_text_);
+                        glUniform1i(ao_tex_location, 1);
+                        glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                        glUniform1i(direction_location, 0);
 
-                    glBindVertexArray(VAO_quad);
-                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
-                    glBindVertexArray(0);
+                        glBindVertexArray(VAO_quad);
+                        glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                        glBindVertexArray(0);
 
-                    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    programs_[programs_.size()-1]->bind();
+                        programs_[programs_.size()-1]->bind();
 
-                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
-                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
-                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
-                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
-                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
-                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+                        near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                        far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                        def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                        ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                        texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                        direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
 
-                    glUniform1f(near_location, (float)kZNear);
-                    glUniform1f(far_location, (float)kZFar);
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, def_depth_);
-                    glUniform1i(def_depth_location, 0);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
-                    glUniform1i(ao_tex_location, 1);
-                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
-                    glUniform1i(direction_location, 1);
+                        glUniform1f(near_location, (float)kZNear);
+                        glUniform1f(far_location, (float)kZFar);
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, def_depth_);
+                        glUniform1i(def_depth_location, 0);
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
+                        glUniform1i(ao_tex_location, 1);
+                        glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                        glUniform1i(direction_location, 1);
 
-                    glBindVertexArray(VAO_quad);
-                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
-                    glBindVertexArray(0);
+                        glBindVertexArray(VAO_quad);
+                        glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                        glBindVertexArray(0);
+                    }
 
                     // IBL shader + AO contribution + SkyBox
 
@@ -940,6 +946,8 @@ void GLWidget::paintGL ()
                     aspect_ratio_location   = programs_[programs_.size()-7]->uniformLocation("a_ratio");
                     specular_map_location   = programs_[programs_.size()-7]->uniformLocation("specular_map");
                     diffuse_map_location    = programs_[programs_.size()-7]->uniformLocation("diffuse_map");
+                    width_location          = programs_[programs_.size()-7]->uniformLocation("vp_width");
+                    height_location         = programs_[programs_.size()-7]->uniformLocation("vp_height");
 
                     glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
                     glUniformMatrix4fv(inv_view_location, 1, GL_FALSE, &iview[0][0]);
@@ -953,6 +961,8 @@ void GLWidget::paintGL ()
                     glUniform1f(far_location, (float)kZFar);
                     glUniform1f(fov_location, (float)kFieldOfView * (glm::pi<float>()/180));
                     glUniform1f(aspect_ratio_location, (float)(width_/height_));
+                    glUniform1f(width_location, (float)(width_));
+                    glUniform1f(height_location, (float)(height_));
 
                     glActiveTexture(GL_TEXTURE0);
                     glBindTexture(GL_TEXTURE_2D, ao_text_);
@@ -1055,7 +1065,7 @@ void GLWidget::paintGL ()
             else { // Debug view code for AO
                 GLint def_albedo_location, def_normal_location, def_depth_location, defaultFramebuffer, near_location, far_location,
                       fov_location, aspect_ratio_location, num_samples_location, num_dirs_location, radius_location, width_location,
-                      height_location, noise_tex_location, av_color_location, ao_filtered_location;
+                      height_location, noise_tex_location, av_color_location, ao_filtered_location, use_noise_location;
                 glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFramebuffer);
 
                 // First pass -------------------------------------------------------------------------------------------
@@ -1125,6 +1135,7 @@ void GLWidget::paintGL ()
                 radius_location         = programs_[programs_.size()-pId]->uniformLocation("radius");
                 width_location          = programs_[programs_.size()-pId]->uniformLocation("vp_width");
                 height_location         = programs_[programs_.size()-pId]->uniformLocation("vp_height");
+                use_noise_location      = programs_[programs_.size()-pId]->uniformLocation("use_noise");
 
                 glUniformMatrix4fv(projection_location, 1, GL_FALSE, &projection[0][0]);
                 glUniformMatrix4fv(view_location, 1, GL_FALSE, &view[0][0]);
@@ -1155,6 +1166,7 @@ void GLWidget::paintGL ()
 
                 glUniform1i(num_samples_location, ao_samples_);
                 glUniform1i(num_dirs_location, ao_dirs_);
+                glUniform1i(use_noise_location, use_noise_);
 
                 glBindVertexArray(VAO_quad);
                 glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
@@ -1163,60 +1175,61 @@ void GLWidget::paintGL ()
                 // Third pass ----------------------------------------------------------------------------------------
                 if (ao_currentTexture_ == 3) {
                     GLint ao_tex_location, texel_size_location, direction_location;
+                    if (use_filter){
+                        glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    glBindFramebuffer(GL_FRAMEBUFFER, ao_filter_FrameBuffer);
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        programs_[programs_.size()-1]->bind();
 
-                    programs_[programs_.size()-1]->bind();
+                        near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                        far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                        def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                        ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                        texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                        direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
 
-                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
-                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
-                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
-                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
-                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
-                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+                        glUniform1f(near_location, (float)kZNear);
+                        glUniform1f(far_location, (float)kZFar);
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, def_depth_);
+                        glUniform1i(def_depth_location, 0);
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, ao_text_);
+                        glUniform1i(ao_tex_location, 1);
+                        glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                        glUniform1i(direction_location, 0);
 
-                    glUniform1f(near_location, (float)kZNear);
-                    glUniform1f(far_location, (float)kZFar);
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, def_depth_);
-                    glUniform1i(def_depth_location, 0);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, ao_text_);
-                    glUniform1i(ao_tex_location, 1);
-                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
-                    glUniform1i(direction_location, 0);
+                        glBindVertexArray(VAO_quad);
+                        glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                        glBindVertexArray(0);
 
-                    glBindVertexArray(VAO_quad);
-                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
-                    glBindVertexArray(0);
+                        glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-                    glBindFramebuffer(GL_FRAMEBUFFER, ao_FrameBuffer);
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        programs_[programs_.size()-1]->bind();
 
-                    programs_[programs_.size()-1]->bind();
+                        near_location           = programs_[programs_.size()-1]->uniformLocation("near");
+                        far_location            = programs_[programs_.size()-1]->uniformLocation("far");
+                        def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
+                        ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
+                        texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
+                        direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
 
-                    near_location           = programs_[programs_.size()-1]->uniformLocation("near");
-                    far_location            = programs_[programs_.size()-1]->uniformLocation("far");
-                    def_depth_location      = programs_[programs_.size()-1]->uniformLocation("def_depth");
-                    ao_tex_location         = programs_[programs_.size()-1]->uniformLocation("ao_tex");
-                    texel_size_location     = programs_[programs_.size()-1]->uniformLocation("texelSize");
-                    direction_location      = programs_[programs_.size()-1]->uniformLocation("direction");
+                        glUniform1f(near_location, (float)kZNear);
+                        glUniform1f(far_location, (float)kZFar);
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, def_depth_);
+                        glUniform1i(def_depth_location, 0);
+                        glActiveTexture(GL_TEXTURE1);
+                        glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
+                        glUniform1i(ao_tex_location, 1);
+                        glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
+                        glUniform1i(direction_location, 1);
 
-                    glUniform1f(near_location, (float)kZNear);
-                    glUniform1f(far_location, (float)kZFar);
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, def_depth_);
-                    glUniform1i(def_depth_location, 0);
-                    glActiveTexture(GL_TEXTURE1);
-                    glBindTexture(GL_TEXTURE_2D, ao_filter_text_);
-                    glUniform1i(ao_tex_location, 1);
-                    glUniform2f(texel_size_location, (float)(1.0/width_), (float)(1.0/height_));
-                    glUniform1i(direction_location, 1);
-
-                    glBindVertexArray(VAO_quad);
-                    glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
-                    glBindVertexArray(0);
+                        glBindVertexArray(VAO_quad);
+                        glDrawElements(GL_TRIANGLES,quadFaces_.size(),GL_UNSIGNED_INT,(GLvoid*)0);
+                        glBindVertexArray(0);
+                    }
 
                     // Filtered AO (two directions)
 
@@ -1329,6 +1342,12 @@ void GLWidget::SetNumSamplesAO(int s)
     update();
 }
 
+void GLWidget::SetUseNoise(bool set)
+{
+    set ? use_noise_ = 1 : use_noise_ = 0;
+    update();
+}
+
 void GLWidget::SetNumDirsAO(int d)
 {
     ao_dirs_ = d;
@@ -1350,6 +1369,12 @@ void GLWidget::SetSkyVisible(bool set)
 void GLWidget::SetDebugView(bool set)
 {
     debugView_ = set;
+    update();
+}
+
+void GLWidget::SetUseFilter(bool set)
+{
+    use_filter = set;
     update();
 }
 

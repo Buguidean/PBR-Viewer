@@ -248,6 +248,13 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
   int avaliable_color_;
 
   /**
+   * @brief debugView_ Enables use of debugView
+   */
+  int use_noise_;
+
+  bool use_filter;
+
+  /**
    * @brief usePBStex_ Enables use of textures for PBS
    */
   int usePBStex_;
@@ -364,6 +371,16 @@ class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core {
    * @brief SetCurrentTexture sets the current texture to show
    */
   void SetCurrentTexture(int);
+
+  /**
+   * @brief SetCurrentTexture sets the current texture to show
+   */
+  void SetUseNoise(bool set);
+
+  /**
+   * @brief SetCurrentTexture sets the current texture to show
+   */
+  void SetUseFilter(bool set);
 
   /**
    * @brief SetCurrentTexture sets the current texture to show for debug AO

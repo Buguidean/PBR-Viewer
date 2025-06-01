@@ -15,8 +15,9 @@ uniform float radius;
 uniform float vp_width;
 uniform float vp_height;
 
+uniform int use_noise;
+
 in vec2 TexCoord;
-in vec3 Position;
 
 out vec4 frag_color;
 
@@ -33,10 +34,16 @@ float LinearizeDepth(in vec2 uv)
 vec3 PosFromDepth(in vec2 uv, in float h, in float w)
 {
     float eye_z = LinearizeDepth(uv);
-    float eye_x = (Position.x * w * eye_z) / near;
-    float eye_y = (Position.y * h * eye_z) / near;
+    eye_z = -eye_z;
 
-    return vec3(eye_x,eye_y,eye_z);
+    vec2 ndc = uv * 2.0 - 1.0;
+    ndc.y = -ndc.y;
+    ndc.x = -ndc.x;
+
+    float eye_x = ndc.x * w * eye_z / near;
+    float eye_y = ndc.y * h * eye_z / near;
+
+    return vec3(eye_x, eye_y, eye_z);
 }
 
 void main()
@@ -47,7 +54,9 @@ void main()
 
     vec3 normalSample = texture(def_normal,TexCoord).rgb;
     vec2 tile = vec2 (vp_width/8.0,vp_height/8.0);
-    float noise_angle = texture(noise_tex,TexCoord * tile).r * 2.0 * PI;
+    float noise_angle = 0.0;
+    if (use_noise == 1)
+        noise_angle = texture(noise_tex,TexCoord * tile).r * 2.0 * PI;
 
     if (normalSample != vec3(0.0)){
 

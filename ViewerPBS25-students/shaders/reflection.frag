@@ -11,6 +11,7 @@ out vec4 frag_color;
 void main (void) {
     vec3 obsDir = normalize(FragPos);
     vec3 reflObsDir = reflect(obsDir,nm_Normal);
-    vec3 reflRayWorldSpace = vec3(inv_view * vec4(reflObsDir,1.0));
+    mat3 rotation = mat3(inv_view);
+    vec3 reflRayWorldSpace = rotation * reflObsDir;
     frag_color = vec4(textureLod(skybox,reflRayWorldSpace,0).rgb,1.0);
 }

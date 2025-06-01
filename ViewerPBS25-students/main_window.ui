@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>827</width>
-    <height>916</height>
+    <height>988</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -586,7 +586,33 @@
           </rect>
          </property>
          <property name="text">
-          <string>HSSAO</string>
+          <string>HSSAO + PBS</string>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="check_noise">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>710</y>
+           <width>111</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Noise</string>
+         </property>
+        </widget>
+        <widget class="QCheckBox" name="check_filter">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>730</y>
+           <width>83</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Filter</string>
          </property>
         </widget>
        </widget>
@@ -807,6 +833,8 @@
     <slot>SetNumDirsAO(int)</slot>
     <slot>SetRadiusAO(double)</slot>
     <slot>SetAOContribution(bool)</slot>
+    <slot>SetUseNoise(bool)</slot>
+    <slot>SetUseFilter(bool)</slot>
    </slots>
   </customwidget>
  </customwidgets>
@@ -1177,6 +1205,38 @@
     <hint type="destinationlabel">
      <x>308</x>
      <y>468</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>check_noise</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetUseNoise(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>691</x>
+     <y>751</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>504</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>check_filter</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>glwidget</receiver>
+   <slot>SetUseFilter(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>677</x>
+     <y>771</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>308</x>
+     <y>504</y>
     </hint>
    </hints>
   </connection>

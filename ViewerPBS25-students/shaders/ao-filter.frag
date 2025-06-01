@@ -29,7 +29,6 @@ void main() {
     float sum = FragAO;
     float totalWeight = 1.0;
 
-    // Horizontal pass
     for (float i = -blurRadius; i <= blurRadius; i++) {
         if (i == 0.0) continue;
 
