@@ -100,7 +100,7 @@ void main (void) {
 
         if (pbstex_use == 0)
         {
-            u_Color     = vec3(0.6,0.3,0.0);
+            u_Color     = vec3(1.0,1.0,0.0);
             u_roughness = roughness;
             u_metalness = metalness;
         }
@@ -132,9 +132,9 @@ void main (void) {
         Lo += (kD * diffuse_part(u_Color) + specular) * radiance * NdotL;
 
         // Constant ambient term similar to Phong
-        vec3 ambient = vec3(0.03);
+        vec3 ambient = vec3(0.05);
         ambient *= mix(u_Color, F0, u_metalness);
-        float ao = pow(texture(ao_texture,TexCoord).r,4.2);
+        float ao = pow(texture(ao_texture,TexCoord).r,2.2);
         ambient *= ao;
 
         vec3 FinalColor = Lo + ambient;

@@ -20,5 +20,6 @@ void main (void) {
   else
     defColor = texture(color_map,TexCoord);
   defNormal = vec4(nm_Normal,1.0);
-  defMaterial = vec2(texture(roughness_map,TexCoord).r,texture(metalness_map,TexCoord).r);
+  defMaterial = vec2(texture(roughness_map,TexCoord).r,
+                     texture(metalness_map,TexCoord).r);
 }

@@ -95,7 +95,7 @@ void main (void) {
     Lo += (kD * diffuse_part(u_Color) + specular) * radiance * NdotL;
 
     // Constant ambient term similar to Phong
-    vec3 ambient = vec3(0.03);
+    vec3 ambient = vec3(0.05);
     ambient *= mix(u_Color, F0, u_metalness);
 
     vec3 FinalColor = Lo + ambient;
