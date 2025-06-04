@@ -314,7 +314,7 @@ bool ReadFromObj(const std::string &filename, TriangleMesh *mesh)
     }
     //for(auto i = 0; i < mesh->texCoords_.size(); i+=2)
     //    std::cout << mesh->texCoords_[i] << " " << mesh->texCoords_[i+1] << std::endl;
-
+    return true;
 }
 
 bool CreateSphere(TriangleMesh *mesh)

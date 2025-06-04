@@ -97,7 +97,7 @@ void main()
           ao_term += (sin(a_horizon) - sin(a_tangent)) * attenuation;
       }
 
-      float ao = 1.0 - (ao_term / (2.0 * PI * float(num_directions)));
+      float ao = 1.0 - (ao_term / (float(num_directions)));
       frag_color = vec4(ao,ao,ao,1.0);
     }
 }

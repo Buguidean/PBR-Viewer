@@ -11,8 +11,8 @@ uniform int direction;
 in vec2 TexCoord;
 out vec4 frag_color;
 
-const int blurRadius = 5;
-const float blurSharpness = 100.0;
+const int blurRadius = 10;
+const float blurSharpness = 40.0;
 
 float LinearizeDepth(in vec2 uv)
 {

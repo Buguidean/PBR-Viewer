@@ -525,7 +525,7 @@ void GLWidget::initializeGL ()
 
     std::vector<float> randomValues(64); // For a 8x8 texture
     for (int i = 0; i < 64; i++) {
-        randomValues[i] = (float)rand() / (float)RAND_MAX;
+        randomValues[i] = ((float)rand() / (float)RAND_MAX) - 0.5;
     }
 
     glBindTexture(GL_TEXTURE_2D, noise_text_);
