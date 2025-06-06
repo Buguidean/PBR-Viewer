@@ -1,5 +1,6 @@
 # Exclude papers dir (large files)
 /papers/
+/SSAO/
 
 # Qt-specific ignore patterns
 *.pro.user

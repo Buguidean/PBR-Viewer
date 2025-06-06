@@ -77,7 +77,6 @@ vec3 PosFromDepth(in vec2 uv, in float h, in float w)
     float eye_z = LinearizeDepth(uv);
     eye_z = -eye_z;
 
-    // Convert from texture coordinates to NDC
     vec2 ndc = uv * 2.0 - 1.0;
     ndc.y = -ndc.y;
     ndc.x = -ndc.x;

@@ -56,7 +56,7 @@ void main()
     vec2 tile = vec2 (vp_width/8.0,vp_height/8.0);
     float noise_angle = 0.0;
     if (use_noise == 1)
-        noise_angle = texture(noise_tex,TexCoord * tile).r * 2.0 * PI;
+        noise_angle = texture(noise_tex,TexCoord * tile).r * PI;
 
     if (normalSample != vec3(0.0)){
 
@@ -80,8 +80,7 @@ void main()
               vec2 p_samp = TexCoord + (j+1) * (radius/num_samples) * dir;
               p_samp = clamp(p_samp,vec2(0.0),vec2(1.0));
 
-              vec2 center_samp = floor(p_samp / tex_size + 0.5) * tex_size;
-              vec3 eye_samp = PosFromDepth(center_samp,height,width);
+              vec3 eye_samp = PosFromDepth(p_samp,height,width);
               vec3 D = eye_samp - FragPos;
 
               float angle = atan(-D.z, length(D.xy));
@@ -97,7 +96,7 @@ void main()
           ao_term += (sin(a_horizon) - sin(a_tangent)) * attenuation;
       }
 
-      float ao = 1.0 - (ao_term / (float(num_directions)));
+      float ao = 1.0 - (ao_term / float(num_directions));
       frag_color = vec4(ao,ao,ao,1.0);
     }
 }

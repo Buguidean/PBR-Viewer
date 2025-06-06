@@ -17,8 +17,8 @@
 namespace {
 
 const double kFieldOfView = 60;
-const double kZNear = 0.0001;
-const double kZFar = 20;
+const double kZNear = 0.01;
+const double kZFar = 5;
 
 const std::vector<std::vector<std::string>> kShaderFiles = {
     {"../shaders/phong.vert",        "../shaders/phong.frag"},
@@ -118,9 +118,9 @@ GLWidget::GLWidget(QWidget *parent)
     fresnel_(0.05, 0.05, 0.05),
     currentTexture_(0),
     ao_currentTexture_(0),
-    ao_samples_(5),
-    ao_dirs_(5),
-    ao_radius(0.05),
+    ao_samples_(4),
+    ao_dirs_(4),
+    ao_radius(0.013),
     skyVisible_(true),
     debugView_(false),
     aoComponent_(false),

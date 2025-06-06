@@ -4,7 +4,7 @@ uniform sampler2D def_depth;
 uniform float near;
 uniform float far;
 
-in vec2 TexCoord; // Change to match vertex shader
+in vec2 TexCoord;
 
 out vec4 frag_color;
 

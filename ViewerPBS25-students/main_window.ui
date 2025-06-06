@@ -494,7 +494,7 @@
           <double>0.001000000000000</double>
          </property>
          <property name="value">
-          <double>0.010000000000000</double>
+          <double>0.013000000000000</double>
          </property>
         </widget>
         <widget class="QLabel" name="label_7">
