@@ -20,6 +20,7 @@ CONFIG(debug, release|debug):UI_DIR = $$PWD/debug/
 
 win32{
     LIBS += -lOpenGL32
+    INCLUDEPATH += "C:\Program Files (x86)\glm\include"
 }
 
 
@@ -73,5 +74,3 @@ DISTFILES += \
     shaders/ao-filter.frag \
     shaders/ao-IBL.vert \
     shaders/ao-IBL.frag
-
-
